@@ -8,11 +8,13 @@ export default {
     extend: {
       colors: {
         'defi': {
-          'dark': '#0D111C',
-          'darker': '#070A0E',
-          'card': '#131823',
-          'border': '#1B2133',
-          'hover': '#242A3E',
+          'dark': '#0D1320',
+          'darker': '#070B11',
+          'card': '#1A1F2E',
+          'border': '#2A3041',
+          'hover': '#242B3D',
+          'light-text': '#C3C7CF',
+          'medium-text': '#8B92A3',
         },
         'primary': {
           50: '#EFF6FF',

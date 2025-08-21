@@ -31,15 +31,15 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const getArrowClasses = () => {
     switch (position) {
       case 'top':
-        return 'top-full left-1/2 -translate-x-1/2 border-t-gray-900';
+        return 'top-full left-1/2 -translate-x-1/2 border-t-defi-hover';
       case 'bottom':
-        return 'bottom-full left-1/2 -translate-x-1/2 border-b-gray-900';
+        return 'bottom-full left-1/2 -translate-x-1/2 border-b-defi-hover';
       case 'left':
-        return 'left-full top-1/2 -translate-y-1/2 border-l-gray-900';
+        return 'left-full top-1/2 -translate-y-1/2 border-l-defi-hover';
       case 'right':
-        return 'right-full top-1/2 -translate-y-1/2 border-r-gray-900';
+        return 'right-full top-1/2 -translate-y-1/2 border-r-defi-hover';
       default:
-        return 'top-full left-1/2 -translate-x-1/2 border-t-gray-900';
+        return 'top-full left-1/2 -translate-x-1/2 border-t-defi-hover';
     }
   };
 
@@ -56,7 +56,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       {isVisible && (
         <div className={`absolute z-50 ${getPositionClasses()} pointer-events-none`}>
           <div className="relative">
-            <div className="bg-gray-900 text-white text-sm rounded-lg px-4 py-3 min-w-[280px] max-w-sm whitespace-pre-line">
+            <div className="bg-defi-hover text-defi-light-text text-sm rounded-lg px-4 py-3 min-w-[280px] max-w-sm whitespace-pre-line border border-defi-border">
               {content}
             </div>
             <div 
@@ -77,7 +77,7 @@ interface InfoTooltipProps {
 export const InfoTooltip: React.FC<InfoTooltipProps> = ({ content, position = 'top' }) => {
   return (
     <Tooltip content={content} position={position}>
-      <span className="inline-flex items-center justify-center w-3.5 h-3.5 text-[10px] text-gray-400 border border-gray-300 rounded-full cursor-help hover:bg-gray-50 hover:text-gray-600 transition-all align-middle -translate-y-[1px]">
+      <span className="inline-flex items-center justify-center w-3.5 h-3.5 text-[10px] text-defi-medium-text border border-defi-border rounded-full cursor-help hover:bg-defi-border hover:text-defi-light-text transition-all align-middle -translate-y-[1px]">
         ?
       </span>
     </Tooltip>

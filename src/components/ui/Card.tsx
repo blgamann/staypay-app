@@ -11,7 +11,7 @@ export const Card: React.FC<CardProps> = ({
   children, 
   className = '', 
   hover = false,
-  variant = 'default' 
+  variant = 'dark' 
 }) => {
   const baseStyles = 'rounded-2xl transition-all duration-200';
   
@@ -37,7 +37,7 @@ interface CardHeaderProps {
 
 export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '' }) => {
   return (
-    <div className={`p-6 border-b border-gray-200 ${className}`}>
+    <div className={`p-6 border-b border-defi-border ${className}`}>
       {children}
     </div>
   );
@@ -78,10 +78,10 @@ export const StatsCard: React.FC<StatsCardProps> = ({
     <Card className="p-4">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm text-gray-500 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-sm text-defi-medium-text mb-1">{title}</p>
+          <p className="text-2xl font-bold text-white">{value}</p>
           {subtitle && (
-            <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+            <p className="text-sm text-defi-light-text mt-1">{subtitle}</p>
           )}
           {trend && (
             <div className={`flex items-center mt-2 text-sm font-medium ${
@@ -93,7 +93,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
           )}
         </div>
         {icon && (
-          <div className="ml-4 p-2 bg-primary-50 rounded-lg">
+          <div className="ml-4 p-2 bg-primary-500/10 rounded-lg">
             {icon}
           </div>
         )}

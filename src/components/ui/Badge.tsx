@@ -16,11 +16,11 @@ export const Badge: React.FC<BadgeProps> = ({
   const baseStyles = 'inline-flex items-center font-medium rounded-full';
   
   const variants = {
-    default: 'bg-gray-100 text-gray-800',
-    success: 'bg-success-500/10 text-success-600',
-    warning: 'bg-warning-500/10 text-warning-600',
-    error: 'bg-error-500/10 text-error-600',
-    info: 'bg-primary-500/10 text-primary-600',
+    default: 'bg-defi-border text-defi-light-text',
+    success: 'bg-success-500/20 text-success-500',
+    warning: 'bg-warning-500/20 text-warning-500',
+    error: 'bg-error-500/20 text-error-500',
+    info: 'bg-primary-500/20 text-primary-400',
   };
   
   const sizes = {

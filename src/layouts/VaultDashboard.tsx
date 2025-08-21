@@ -39,14 +39,14 @@ const BalanceCard = ({
   return (
     <Card>
       <CardBody>
-        <h3 className="text-lg font-semibold mb-4">My Balance</h3>
+        <h3 className="text-lg font-semibold mb-4 text-white">My Balance</h3>
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <img src={kaiaIcon} alt="KAIA" className="w-8 h-8 rounded-full" />
               <span className="font-medium text-base">KAIA</span>
             </div>
-            <span className="font-mono font-semibold text-lg">
+            <span className="font-mono font-semibold text-lg text-white">
               {balances.kaia.toFixed(4)}
             </span>
           </div>
@@ -60,7 +60,7 @@ const BalanceCard = ({
                 KRWS
               </button>
             </div>
-            <span className="font-mono font-semibold text-lg">
+            <span className="font-mono font-semibold text-lg text-white">
               {balances.krws.toFixed(2)}
             </span>
           </div>
@@ -77,10 +77,10 @@ const BalanceCard = ({
               </button>
             </div>
             <div className="text-right">
-              <div className="font-mono font-semibold text-lg">
+              <div className="font-mono font-semibold text-lg text-white">
                 {balances.spvKRWS.toFixed(2)}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-defi-medium-text">
                 ≈ {balances.spvKRWSInKRWS.toFixed(2)} KRWS
               </div>
             </div>
@@ -123,28 +123,28 @@ const VaultCard = ({
         </button>
         <div className="space-y-4">
           <div>
-            <div className="text-4xl font-bold">
+            <div className="text-4xl font-bold text-white">
               {formatAmount(vaultData.tvl)}
             </div>
-            <div className="text-sm text-gray-500 mt-1">Total Value Locked</div>
+            <div className="text-sm text-defi-medium-text mt-1">Total Value Locked</div>
           </div>
           <div className="space-y-3 pt-2">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Available Liquidity</span>
-              <span className="font-semibold">
+              <span className="text-defi-medium-text">Available Liquidity</span>
+              <span className="font-semibold text-white">
                 {formatAmount(vaultData.availableLiquidity)}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Active Loans</span>
-              <span className="font-semibold">
+              <span className="text-defi-medium-text">Active Loans</span>
+              <span className="font-semibold text-white">
                 {formatAmount(vaultData.activeLoans)}
               </span>
             </div>
             <div className="pt-2">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-1">
-                  <span className="text-gray-600 text-sm">
+                  <span className="text-defi-medium-text text-sm">
                     Utilization Rate
                   </span>
                   <InfoTooltip
@@ -156,7 +156,7 @@ const VaultCard = ({
                   {vaultData.utilizationRate}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div className="w-full bg-defi-border rounded-full h-1.5">
                 <div
                   className={`h-1.5 rounded-full transition-all ${
                     parseFloat(vaultData.utilizationRate) > 80
@@ -541,23 +541,23 @@ const LoanActivityCard = () => {
     if (type === "repaid") return "text-blue-600 bg-blue-50";
     if (type === "overdue") return "text-red-600 bg-red-50";
     if (status === "active") return "text-green-600 bg-green-50";
-    return "text-gray-600 bg-gray-50";
+    return "text-defi-medium-text bg-defi-darker";
   };
 
   return (
     <Card>
       <CardBody className="flex flex-col">
         <div className="flex justify-between items-center mb-4 flex-shrink-0">
-          <h3 className="text-lg font-semibold">Loan Activity</h3>
+          <h3 className="text-lg font-semibold text-white">Loan Activity</h3>
 
           {/* Time Filter Buttons */}
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+          <div className="flex gap-1 bg-defi-darker rounded-lg p-0.5">
             <button
               onClick={() => setTimeFilter("week")}
               className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
                 timeFilter === "week"
-                  ? "bg-white text-primary-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-defi-card text-primary-400 shadow-sm"
+                  : "text-defi-medium-text hover:text-defi-light-text"
               }`}
             >
               Week
@@ -566,8 +566,8 @@ const LoanActivityCard = () => {
               onClick={() => setTimeFilter("month")}
               className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
                 timeFilter === "month"
-                  ? "bg-white text-primary-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-defi-card text-primary-400 shadow-sm"
+                  : "text-defi-medium-text hover:text-defi-light-text"
               }`}
             >
               Month
@@ -576,8 +576,8 @@ const LoanActivityCard = () => {
               onClick={() => setTimeFilter("all")}
               className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${
                 timeFilter === "all"
-                  ? "bg-white text-primary-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-defi-card text-primary-400 shadow-sm"
+                  : "text-defi-medium-text hover:text-defi-light-text"
               }`}
             >
               All
@@ -586,28 +586,28 @@ const LoanActivityCard = () => {
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-4 gap-4 p-3 bg-gray-50 rounded-lg mb-4 flex-shrink-0">
+        <div className="grid grid-cols-4 gap-4 p-3 bg-defi-darker rounded-lg mb-4 flex-shrink-0">
           <div className="text-center">
-            <div className="text-xl font-bold">{loanStats.totalLoans}</div>
-            <div className="text-xs text-gray-600">Total Loans</div>
+            <div className="text-xl font-bold text-white">{loanStats.totalLoans}</div>
+            <div className="text-xs text-defi-medium-text">Total Loans</div>
           </div>
           <div className="text-center">
             <div className="text-xl font-bold text-blue-600">
               {loanStats.repaid}
             </div>
-            <div className="text-xs text-gray-600">Repaid</div>
+            <div className="text-xs text-defi-medium-text">Repaid</div>
           </div>
           <div className="text-center">
             <div className="text-xl font-bold text-red-600">
               {loanStats.overdue}
             </div>
-            <div className="text-xs text-gray-600">Overdue</div>
+            <div className="text-xs text-defi-medium-text">Overdue</div>
           </div>
           <div className="text-center">
             <div className="text-xl font-bold text-green-600">
               {loanStats.active}
             </div>
-            <div className="text-xs text-gray-600">Active</div>
+            <div className="text-xs text-defi-medium-text">Active</div>
           </div>
         </div>
 
@@ -617,7 +617,7 @@ const LoanActivityCard = () => {
           style={{ maxHeight: "542px" }}
         >
           {activities.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-defi-medium-text">
               No activities in the selected period
             </div>
           ) : (
@@ -629,19 +629,19 @@ const LoanActivityCard = () => {
                       <span className="text-lg">
                         {getActivityIcon(activity.type)}
                       </span>
-                      <span className="font-medium">
+                      <span className="font-medium text-white">
                         {activity.type === "issued" && "Loan Issued"}
                         {activity.type === "repaid" && "Loan Repaid"}
                         {activity.type === "overdue" && "Loan Overdue"}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-defi-medium-text">
                         {activity.time}
                       </span>
                     </div>
 
                     {activity.type === "issued" && "amount" in activity && (
                       <div className="ml-7">
-                        <div className="font-mono font-semibold">
+                        <div className="font-mono font-semibold text-white">
                           ₩{formatKRW((activity as any).amount)}
                         </div>
                         <span
@@ -658,10 +658,10 @@ const LoanActivityCard = () => {
                     {activity.type === "repaid" && "principal" in activity && (
                       <div className="ml-7">
                         <div className="font-mono">
-                          <span className="font-semibold">
+                          <span className="font-semibold text-white">
                             ₩{formatKRW(activity.principal!)}
                           </span>
-                          <span className="text-gray-500"> → </span>
+                          <span className="text-defi-medium-text"> → </span>
                           <span className="font-semibold text-blue-600">
                             ₩{formatKRW(activity.repaidAmount!)}
                           </span>
@@ -669,7 +669,7 @@ const LoanActivityCard = () => {
                             (+₩{formatKRW(activity.fee!)} fee)
                           </span>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-defi-medium-text mt-1">
                           Duration: {activity.duration} days
                         </div>
                       </div>
@@ -677,7 +677,7 @@ const LoanActivityCard = () => {
 
                     {activity.type === "overdue" && "amount" in activity && (
                       <div className="ml-7">
-                        <div className="font-mono font-semibold">
+                        <div className="font-mono font-semibold text-white">
                           ₩{formatKRW((activity as any).amount)}
                         </div>
                         <span
@@ -911,7 +911,7 @@ const DebugSection = ({
   return (
     <div className="space-y-4">
       {/* Lend Section */}
-      <div className="p-4 bg-white border border-gray-200 rounded-lg">
+      <div className="p-4 bg-defi-card border border-defi-border rounded-lg">
         <h4 className="font-medium mb-3">📤 Issue Loan</h4>
         <div className="space-y-2 mb-2">
           <div className="relative">
@@ -920,10 +920,10 @@ const DebugSection = ({
               value={lendAmount}
               onChange={(e) => setLendAmount(e.target.value)}
               placeholder="0.0"
-              className="w-full px-3 py-2 pr-24 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500"
+              className="w-full px-3 py-2 pr-24 bg-defi-darker border border-defi-border rounded-lg focus:outline-none focus:border-primary-500 text-white placeholder-defi-medium-text"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">KRWS</span>
+              <span className="text-sm font-medium text-defi-medium-text">KRWS</span>
             </div>
           </div>
         </div>
@@ -942,7 +942,7 @@ const DebugSection = ({
         >
           {isLending || isLendConfirming ? "Lending..." : "Lend to Myself"}
         </Button>
-        <div className="text-xs text-gray-600 mt-2 space-y-1">
+        <div className="text-xs text-defi-medium-text mt-2 space-y-1">
           <div>
             Available: {vaultData.availableLiquidity.toLocaleString()} KRWS
           </div>
@@ -951,16 +951,16 @@ const DebugSection = ({
       </div>
 
       {/* Repay Section */}
-      <div className="p-4 bg-white border border-gray-200 rounded-lg">
+      <div className="p-4 bg-defi-card border border-defi-border rounded-lg">
         <h4 className="font-medium mb-3">💰 Repay Loan</h4>
         <div className="space-y-2 mb-3">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Principal:</span>
-            <span className="font-medium">{principal.toFixed(2)} KRWS</span>
+            <span className="text-defi-medium-text">Principal:</span>
+            <span className="font-medium text-white">{principal.toFixed(2)} KRWS</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Fee:</span>
-            <span className="font-medium">{fee.toFixed(2)} KRWS</span>
+            <span className="text-defi-medium-text">Fee:</span>
+            <span className="font-medium text-white">{fee.toFixed(2)} KRWS</span>
           </div>
           <div className="flex justify-between text-sm font-semibold pt-2 border-t">
             <span>Total Debt:</span>
@@ -1010,14 +1010,14 @@ const DebugSection = ({
       )}
 
       {/* Vault Status */}
-      <div className="p-3 bg-gray-50 rounded-lg text-xs space-y-1">
+      <div className="p-3 bg-defi-darker rounded-lg text-xs space-y-1">
         <div className="flex justify-between">
-          <span className="text-gray-600">Vault Utilization:</span>
-          <span className="font-medium">{vaultData.utilizationRate}%</span>
+          <span className="text-defi-medium-text">Vault Utilization:</span>
+          <span className="font-medium text-white">{vaultData.utilizationRate}%</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-600">Active Loans:</span>
-          <span className="font-medium">
+          <span className="text-defi-medium-text">Active Loans:</span>
+          <span className="font-medium text-white">
             {vaultData.activeLoans.toFixed(2)} KRWS
           </span>
         </div>
@@ -1280,13 +1280,13 @@ const DepositWithdrawCard = ({
   return (
     <Card>
       <CardBody>
-        <div className="flex gap-0 mb-6 bg-gray-100 rounded-xl p-1">
+        <div className="flex gap-0 mb-6 bg-defi-darker rounded-xl p-1">
           <button
             onClick={() => setActiveTab("deposit")}
             className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
               activeTab === "deposit"
                 ? "bg-primary-500 text-white"
-                : "text-gray-600 hover:text-gray-900"
+                : "text-defi-medium-text hover:text-defi-light-text"
             }`}
           >
             Deposit
@@ -1296,7 +1296,7 @@ const DepositWithdrawCard = ({
             className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
               activeTab === "withdraw"
                 ? "bg-primary-500 text-white"
-                : "text-gray-600 hover:text-gray-900"
+                : "text-defi-medium-text hover:text-defi-light-text"
             }`}
           >
             Withdraw
@@ -1311,7 +1311,7 @@ const DepositWithdrawCard = ({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.0"
-                className="w-full px-4 py-4 pr-32 text-2xl font-semibold bg-gray-50 rounded-xl border border-gray-200 focus:border-primary-500 focus:outline-none transition-colors"
+                className="w-full px-4 py-4 pr-32 text-2xl font-semibold bg-defi-darker rounded-xl border border-defi-border focus:border-primary-500 focus:outline-none transition-colors text-white placeholder-defi-medium-text"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 <button
@@ -1320,8 +1320,8 @@ const DepositWithdrawCard = ({
                 >
                   MAX
                 </button>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-gray-200">
-                  <span className="font-semibold">KRWS</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-defi-card rounded-lg border border-defi-border">
+                  <span className="font-semibold text-white">KRWS</span>
                 </div>
               </div>
             </div>
@@ -1329,16 +1329,16 @@ const DepositWithdrawCard = ({
 
           {activeTab === "deposit" && (
             <>
-              <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
+              <div className="space-y-3 p-4 bg-defi-darker rounded-xl">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">You will receive</span>
-                  <span className="font-semibold">
+                  <span className="text-defi-medium-text">You will receive</span>
+                  <span className="font-semibold text-white">
                     {previewDepositShares.toFixed(2)} spvKRWS
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
-                  <span className="text-gray-600">Exchange Rate</span>
-                  <div className="text-right font-semibold">
+                  <span className="text-defi-medium-text">Exchange Rate</span>
+                  <div className="text-right font-semibold text-white">
                     <div>1 KRWS</div>
                     <div>
                       = {exchangeRate.spvKRWSPerKRWS.toFixed(4)} spvKRWS
@@ -1346,7 +1346,7 @@ const DepositWithdrawCard = ({
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">APY</span>
+                  <span className="text-defi-medium-text">APY</span>
                   <Badge variant="success" size="sm">
                     0.00%
                   </Badge>
@@ -1411,22 +1411,22 @@ const DepositWithdrawCard = ({
 
           {activeTab === "withdraw" && (
             <>
-              <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
+              <div className="space-y-3 p-4 bg-defi-darker rounded-xl">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">You will receive</span>
-                  <span className="font-semibold">
+                  <span className="text-defi-medium-text">You will receive</span>
+                  <span className="font-semibold text-white">
                     {previewWithdrawAssets.toFixed(2)} KRWS
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Available to withdraw</span>
-                  <span className="font-semibold">
+                  <span className="text-defi-medium-text">Available to withdraw</span>
+                  <span className="font-semibold text-white">
                     {maxWithdraw.toFixed(2)} KRWS
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
-                  <span className="text-gray-600">Exchange Rate</span>
-                  <div className="text-right font-semibold">
+                  <span className="text-defi-medium-text">Exchange Rate</span>
+                  <div className="text-right font-semibold text-white">
                     <div>1 spvKRWS</div>
                     <div>= {exchangeRate.krwsPerSpvKRWS.toFixed(4)} KRWS</div>
                   </div>
@@ -1464,9 +1464,9 @@ const DepositWithdrawCard = ({
 
         {/* Test Console - For simulation */}
         <div className="mt-6">
-          <div className="p-4 border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl">
+          <div className="p-4 border-2 border-dashed border-defi-border bg-defi-darker rounded-xl">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg font-semibold">🧪 Test Console</span>
+              <span className="text-lg font-semibold text-white">🧪 Test Console</span>
             </div>
 
             <DebugSection

@@ -18,13 +18,13 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-defi-light-text mb-2">
           {label}
         </label>
       )}
       <div className="relative">
         {prefix && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-defi-medium-text">
             {prefix}
           </div>
         )}
@@ -33,10 +33,11 @@ export const Input: React.FC<InputProps> = ({
             w-full px-4 py-3 
             ${prefix ? 'pl-10' : ''}
             ${suffix ? 'pr-20' : ''}
-            bg-white border rounded-xl
-            ${error ? 'border-error-500' : 'border-gray-300'}
+            bg-defi-darker border rounded-xl text-white
+            ${error ? 'border-error-500' : 'border-defi-border'}
             focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
             transition-all duration-200
+            placeholder-defi-medium-text
             ${className}
           `}
           {...props}
@@ -80,38 +81,38 @@ export const TokenInput: React.FC<TokenInputProps> = ({
     <div className="w-full">
       {label && (
         <div className="flex justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700">{label}</label>
+          <label className="text-sm font-medium text-defi-light-text">{label}</label>
           {balance && (
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-defi-medium-text">
               Balance: {balance} {token?.symbol}
             </span>
           )}
         </div>
       )}
-      <div className="relative bg-gray-50 rounded-xl p-4 border border-gray-200 focus-within:border-primary-500 transition-colors">
+      <div className="relative bg-defi-darker rounded-xl p-4 border border-defi-border focus-within:border-primary-500 transition-colors">
         <div className="flex items-center">
           <input
             type="number"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 bg-transparent text-2xl font-semibold outline-none placeholder-gray-400"
+            className="flex-1 bg-transparent text-2xl font-semibold outline-none text-white placeholder-defi-medium-text"
           />
           <div className="flex items-center gap-2">
             {onMaxClick && (
               <button
                 onClick={onMaxClick}
-                className="px-2 py-1 text-xs font-semibold text-primary-500 hover:bg-primary-50 rounded-md transition-colors"
+                className="px-2 py-1 text-xs font-semibold text-primary-400 hover:bg-primary-500/10 rounded-md transition-colors"
               >
                 MAX
               </button>
             )}
             {token && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-defi-card rounded-lg border border-defi-border">
                 {token.icon && (
                   <img src={token.icon} alt={token.symbol} className="w-5 h-5" />
                 )}
-                <span className="font-semibold">{token.symbol}</span>
+                <span className="font-semibold text-white">{token.symbol}</span>
               </div>
             )}
           </div>
@@ -137,7 +138,7 @@ export const PercentageInput: React.FC<PercentageInputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-defi-light-text mb-2">
           {label}
         </label>
       )}
@@ -150,7 +151,7 @@ export const PercentageInput: React.FC<PercentageInputProps> = ({
               flex-1 py-2 px-3 rounded-lg font-medium transition-all
               ${value === percent 
                 ? 'bg-primary-500 text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-defi-border text-defi-light-text hover:bg-defi-hover'
               }
             `}
           >
@@ -165,9 +166,9 @@ export const PercentageInput: React.FC<PercentageInputProps> = ({
           max="100"
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+          className="w-full h-2 bg-defi-border rounded-lg appearance-none cursor-pointer"
         />
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <div className="flex justify-between text-xs text-defi-medium-text mt-1">
           <span>0%</span>
           <span>{value}%</span>
           <span>100%</span>

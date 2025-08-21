@@ -21,11 +21,11 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = 'font-semibold transition-all duration-200 rounded-xl inline-flex items-center justify-center';
   
   const variants = {
-    primary: 'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 disabled:bg-gray-400',
-    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400 disabled:bg-gray-100',
-    outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-50 active:bg-primary-100 disabled:border-gray-300 disabled:text-gray-300',
-    ghost: 'text-gray-600 hover:bg-gray-100 active:bg-gray-200 disabled:text-gray-300',
-    danger: 'bg-error-500 text-white hover:bg-error-600 active:bg-error-700 disabled:bg-gray-400',
+    primary: 'bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 disabled:bg-defi-border disabled:text-defi-medium-text',
+    secondary: 'bg-defi-border text-defi-light-text hover:bg-defi-hover active:bg-defi-hover disabled:bg-defi-darker disabled:text-defi-medium-text',
+    outline: 'border-2 border-primary-500 text-primary-500 hover:bg-primary-500/10 active:bg-primary-500/20 disabled:border-defi-border disabled:text-defi-medium-text',
+    ghost: 'text-defi-light-text hover:bg-defi-border active:bg-defi-hover disabled:text-defi-medium-text',
+    danger: 'bg-error-500 text-white hover:bg-error-600 active:bg-error-700 disabled:bg-defi-border disabled:text-defi-medium-text',
   };
 
   const sizes = {
