@@ -1,5 +1,6 @@
 import { createConfig, http } from 'wagmi';
-import { Chain } from 'viem';
+import { injected } from 'wagmi/connectors';
+import type { Chain } from 'viem';
 
 // Kaia Kairos Testnet 체인 정의
 export const kaiaKairos: Chain = {
@@ -24,9 +25,14 @@ export const kaiaKairos: Chain = {
   testnet: true,
 };
 
-// 심플한 wagmi config (MetaMask만 지원)
+// wagmi config with connectors properly configured
 export const config = createConfig({
   chains: [kaiaKairos],
+  connectors: [
+    injected({
+      target: 'metaMask',
+    }),
+  ],
   transports: {
     [kaiaKairos.id]: http(),
   },

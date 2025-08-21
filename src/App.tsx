@@ -1,32 +1,24 @@
-import { useState } from 'react';
 import { VaultDashboard } from './layouts/VaultDashboard';
 import { Button } from './components/ui/Button';
 import { Card, CardBody } from './components/ui/Card';
 import { Badge } from './components/ui/Badge';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
 
 function App() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState('');
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
 
-  const connectWallet = async () => {
-    if (typeof window.ethereum !== 'undefined') {
-      try {
-        const accounts = await window.ethereum.request({ 
-          method: 'eth_requestAccounts' 
-        });
-        setAddress(accounts[0]);
-        setIsConnected(true);
-      } catch (error) {
-        console.error('Failed to connect wallet:', error);
-      }
-    } else {
-      alert('Please install MetaMask!');
+  const connectWallet = () => {
+    // Use the first available connector (MetaMask)
+    const connector = connectors[0];
+    if (connector) {
+      connect({ connector });
     }
   };
 
   const disconnectWallet = () => {
-    setIsConnected(false);
-    setAddress('');
+    disconnect();
   };
 
   const formatAddress = (addr: string) => {
@@ -48,7 +40,7 @@ function App() {
                   onClick={disconnectWallet}
                   variant="danger"
                 >
-                  {formatAddress(address)}
+                  {address ? formatAddress(address) : ''}
                 </Button>
               ) : (
                 <Button 

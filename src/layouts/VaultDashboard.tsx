@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardBody } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { TokenInput } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { InfoTooltip } from '../components/ui/Tooltip';
+import { useVaultData, useUserBalances, useExchangeRate, useDeposit, useWithdraw, useApprove } from '../contracts/hooks';
+import { formatUnits } from 'viem';
 
 interface VaultDashboardProps {
   address?: string;
 }
 
 // Balance Card Component
-const BalanceCard = () => {
+const BalanceCard = ({ balances }: { balances: ReturnType<typeof useUserBalances> }) => {
   return (
     <Card>
       <CardBody>
@@ -21,14 +22,14 @@ const BalanceCard = () => {
               <div className="w-8 h-8 rounded-full bg-orange-500"></div>
               <span className="font-medium text-base">KAIA</span>
             </div>
-            <span className="font-mono font-semibold text-lg">0.00</span>
+            <span className="font-mono font-semibold text-lg">{balances.kaia.toFixed(4)}</span>
           </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-blue-500"></div>
               <span className="font-medium text-base">KRWS</span>
             </div>
-            <span className="font-mono font-semibold text-lg">0.00</span>
+            <span className="font-mono font-semibold text-lg">{balances.krws.toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -36,8 +37,8 @@ const BalanceCard = () => {
               <span className="font-medium text-base">spvKRWS</span>
             </div>
             <div className="text-right">
-              <div className="font-mono font-semibold text-lg">0.00</div>
-              <div className="text-xs text-gray-500">≈ 0.00 KRWS</div>
+              <div className="font-mono font-semibold text-lg">{balances.spvKRWS.toFixed(2)}</div>
+              <div className="text-xs text-gray-500">≈ {balances.spvKRWSInKRWS.toFixed(2)} KRWS</div>
             </div>
           </div>
         </div>
@@ -47,12 +48,15 @@ const BalanceCard = () => {
 };
 
 // Vault Card Component (formerly TVL)
-const VaultCard = () => {
-  // Mock data - would come from contract
-  const availableLiquidity = 15000000; // 15M KRWS available
-  const activeLoans = 10000000; // 10M KRWS loaned out
-  const tvl = availableLiquidity + activeLoans; // 25M KRWS total
-  const utilizationRate = tvl > 0 ? ((activeLoans / tvl) * 100).toFixed(1) : '0.0';
+const VaultCard = ({ vaultData }: { vaultData: ReturnType<typeof useVaultData> }) => {
+  const formatAmount = (amount: number) => {
+    if (amount >= 1000000) {
+      return `₩${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `₩${(amount / 1000).toFixed(1)}K`;
+    }
+    return `₩${amount.toFixed(2)}`;
+  };
 
   return (
     <Card>
@@ -60,17 +64,17 @@ const VaultCard = () => {
         <h3 className="text-lg font-semibold mb-4">Vault</h3>
         <div className="space-y-4">
           <div>
-            <div className="text-4xl font-bold">₩{(tvl / 1000000).toFixed(1)}M</div>
+            <div className="text-4xl font-bold">{formatAmount(vaultData.tvl)}</div>
             <div className="text-sm text-gray-500 mt-1">Total Value Locked</div>
           </div>
           <div className="space-y-3 pt-2">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Available Liquidity</span>
-              <span className="font-semibold">₩{(availableLiquidity / 1000000).toFixed(1)}M</span>
+              <span className="font-semibold">{formatAmount(vaultData.availableLiquidity)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Active Loans</span>
-              <span className="font-semibold">₩{(activeLoans / 1000000).toFixed(1)}M</span>
+              <span className="font-semibold">{formatAmount(vaultData.activeLoans)}</span>
             </div>
             <div className="pt-2">
               <div className="flex justify-between items-center mb-2">
@@ -81,16 +85,16 @@ const VaultCard = () => {
                     position="top"
                   />
                 </div>
-                <span className="font-medium text-sm">{utilizationRate}%</span>
+                <span className="font-medium text-sm">{vaultData.utilizationRate}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-1.5">
                 <div 
                   className={`h-1.5 rounded-full transition-all ${
-                    parseFloat(utilizationRate) > 80 ? 'bg-warning-500' : 
-                    parseFloat(utilizationRate) > 60 ? 'bg-primary-500' : 
+                    parseFloat(vaultData.utilizationRate) > 80 ? 'bg-warning-500' : 
+                    parseFloat(vaultData.utilizationRate) > 60 ? 'bg-primary-500' : 
                     'bg-success-500'
                   }`}
-                  style={{ width: `${utilizationRate}%` }}
+                  style={{ width: `${vaultData.utilizationRate}%` }}
                 />
               </div>
             </div>
@@ -319,32 +323,32 @@ const LoanActivityCard = () => {
                     <span className="text-xs text-gray-500">{activity.time}</span>
                   </div>
                   
-                  {activity.type === 'issued' && (
+                  {activity.type === 'issued' && 'amount' in activity && (
                     <div className="ml-7">
-                      <div className="font-mono font-semibold">₩{formatKRW(activity.amount)}</div>
-                      <span className={`inline-block px-2 py-0.5 text-xs rounded-full mt-1 ${getStatusColor(activity.type, activity.status)}`}>
+                      <div className="font-mono font-semibold">₩{formatKRW((activity as any).amount)}</div>
+                      <span className={`inline-block px-2 py-0.5 text-xs rounded-full mt-1 ${getStatusColor(activity.type, 'status' in activity ? activity.status : undefined)}`}>
                         Active
                       </span>
                     </div>
                   )}
                   
-                  {activity.type === 'repaid' && (
+                  {activity.type === 'repaid' && 'principal' in activity && (
                     <div className="ml-7">
                       <div className="font-mono">
-                        <span className="font-semibold">₩{formatKRW(activity.principal)}</span>
+                        <span className="font-semibold">₩{formatKRW(activity.principal!)}</span>
                         <span className="text-gray-500"> → </span>
-                        <span className="font-semibold text-blue-600">₩{formatKRW(activity.repaidAmount)}</span>
-                        <span className="text-sm text-green-600 ml-2">(+₩{formatKRW(activity.fee)} fee)</span>
+                        <span className="font-semibold text-blue-600">₩{formatKRW(activity.repaidAmount!)}</span>
+                        <span className="text-sm text-green-600 ml-2">(+₩{formatKRW(activity.fee!)} fee)</span>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">Duration: {activity.duration} days</div>
                     </div>
                   )}
                   
-                  {activity.type === 'overdue' && (
+                  {activity.type === 'overdue' && 'amount' in activity && (
                     <div className="ml-7">
-                      <div className="font-mono font-semibold">₩{formatKRW(activity.amount)}</div>
+                      <div className="font-mono font-semibold">₩{formatKRW((activity as any).amount)}</div>
                       <span className={`inline-block px-2 py-0.5 text-xs rounded-full mt-1 ${getStatusColor(activity.type)}`}>
-                        {activity.daysOverdue} days overdue
+                        {'daysOverdue' in activity ? activity.daysOverdue : 0} days overdue
                       </span>
                     </div>
                   )}
@@ -359,9 +363,209 @@ const LoanActivityCard = () => {
 };
 
 // Deposit/Withdraw Card Component
-const DepositWithdrawCard = () => {
+const DepositWithdrawCard = ({ balances, onTransactionComplete }: { 
+  balances: ReturnType<typeof useUserBalances>;
+  onTransactionComplete: () => void;
+}) => {
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [amount, setAmount] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [pendingDeposit, setPendingDeposit] = useState(false);
+  
+  const exchangeRate = useExchangeRate();
+  const { 
+    approve, 
+    isPending: isApproving, 
+    isConfirming: isApproveConfirming,
+    isConfirmed: isApproveConfirmed,
+    isLoadingKrwsAddress, 
+    krwsAddress, 
+    error: approveError,
+    reset: resetApprove,
+    refetchAllowance
+  } = useApprove();
+  const { 
+    deposit, 
+    isPending: isDepositing, 
+    isConfirming: isDepositConfirming, 
+    isConfirmed: isDepositConfirmed, 
+    error: depositError,
+    reset: resetDeposit 
+  } = useDeposit();
+  const { 
+    withdraw, 
+    maxWithdraw, 
+    isPending: isWithdrawing, 
+    isConfirming: isWithdrawConfirming, 
+    isConfirmed: isWithdrawConfirmed,
+    error: withdrawError,
+    reset: resetWithdraw,
+    refetchMaxWithdraw 
+  } = useWithdraw();
+  
+  // Clear error message when switching tabs or changing amount
+  useEffect(() => {
+    setErrorMessage('');
+  }, [activeTab, amount]);
+
+  // Handle approve error or cancellation
+  useEffect(() => {
+    if (approveError) {
+      console.error('Approve error:', approveError);
+      // Check if user rejected the transaction
+      const errorMessage = approveError.message || '';
+      if (errorMessage.includes('User rejected') || errorMessage.includes('User denied') || errorMessage.includes('rejected')) {
+        // User cancelled - just reset state, no error message
+        setPendingDeposit(false);
+        resetApprove();
+      } else {
+        // Actual error occurred
+        setErrorMessage('Failed to approve. Please try again.');
+        setPendingDeposit(false);
+      }
+    }
+  }, [approveError, resetApprove]);
+
+  // Handle successful approve - automatically trigger deposit
+  useEffect(() => {
+    const executeDeposit = async () => {
+      if (isApproveConfirmed && pendingDeposit && !isDepositing) {
+        console.log('Approval confirmed! Now depositing...');
+        
+        // Immediately set pendingDeposit to false to prevent duplicate execution
+        setPendingDeposit(false);
+        
+        // Wait a bit for allowance to be updated on chain
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Force refetch allowance
+        const { data: newAllowance } = await refetchAllowance();
+        console.log('New allowance after approval:', newAllowance);
+        
+        try {
+          await deposit(amount);
+        } catch (error: any) {
+          console.error('Error depositing after approval:', error);
+          setErrorMessage(error?.message || 'Deposit failed after approval. Please try again.');
+        }
+        
+        resetApprove(); // Reset approve state
+      }
+    };
+    
+    executeDeposit();
+  }, [isApproveConfirmed, pendingDeposit, isDepositing]); // Reduced dependencies
+
+  // Handle successful deposit
+  useEffect(() => {
+    if (isDepositConfirmed) {
+      console.log('Deposit confirmed!');
+      setAmount(''); // Clear input
+      setErrorMessage('');
+      setPendingDeposit(false);
+      onTransactionComplete(); // Refetch balances and vault data
+      refetchMaxWithdraw(); // Refetch max withdraw amount for withdraw section
+      resetDeposit(); // Reset deposit state
+    }
+  }, [isDepositConfirmed, onTransactionComplete, resetDeposit, refetchMaxWithdraw]);
+
+  // Handle deposit error or cancellation
+  useEffect(() => {
+    if (depositError) {
+      console.error('Deposit error:', depositError);
+      const errorMessage = depositError.message || '';
+      if (errorMessage.includes('User rejected') || errorMessage.includes('User denied') || errorMessage.includes('rejected')) {
+        // User cancelled - just reset state, no error message
+        setPendingDeposit(false);
+        resetDeposit();
+      } else {
+        // Actual error occurred
+        setErrorMessage('Deposit failed. Please try again.');
+        setPendingDeposit(false);
+      }
+    }
+  }, [depositError, resetDeposit]);
+
+  // Handle successful withdraw
+  useEffect(() => {
+    if (isWithdrawConfirmed) {
+      console.log('Withdraw confirmed!');
+      setAmount(''); // Clear input
+      setErrorMessage('');
+      onTransactionComplete(); // Refetch balances and vault data
+      refetchMaxWithdraw(); // Refetch max withdraw amount
+      resetWithdraw(); // Reset withdraw state
+    }
+  }, [isWithdrawConfirmed, onTransactionComplete, refetchMaxWithdraw, resetWithdraw]);
+
+  // Handle withdraw error or cancellation
+  useEffect(() => {
+    if (withdrawError) {
+      console.error('Withdraw error:', withdrawError);
+      const errorMessage = withdrawError.message || '';
+      if (errorMessage.includes('User rejected') || errorMessage.includes('User denied') || errorMessage.includes('rejected')) {
+        // User cancelled - just reset state, no error message
+        resetWithdraw();
+      } else {
+        // Actual error occurred
+        setErrorMessage('Withdraw failed. Please try again.');
+      }
+    }
+  }, [withdrawError, resetWithdraw]);
+
+  
+  const handleMax = () => {
+    if (activeTab === 'deposit') {
+      setAmount(balances.krws.toString());
+    } else {
+      setAmount(Math.min(maxWithdraw, balances.spvKRWSInKRWS).toString());
+    }
+  };
+  
+  const handleDeposit = async () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    
+    setErrorMessage('');
+    
+    try {
+      // Force refetch allowance before checking
+      const { data: currentAllowance } = await refetchAllowance();
+      const actualAllowance = currentAllowance ? Number(formatUnits(currentAllowance as bigint, 18)) : 0;
+      
+      console.log('Current allowance (refetched):', actualAllowance, 'Amount:', amount);
+      
+      // Check if we need approval
+      if (actualAllowance < parseFloat(amount)) {
+        console.log('Needs approval. Current allowance:', actualAllowance, 'Amount:', amount);
+        setPendingDeposit(true); // Set flag to trigger deposit after approval
+        approve(amount); // Don't await here, let useEffect handle the flow
+      } else {
+        console.log('Sufficient allowance. Depositing...');
+        await deposit(amount);
+      }
+    } catch (error: any) {
+      console.error('Error in handleDeposit:', error);
+      setErrorMessage(error?.message || 'Transaction failed. Please try again.');
+      setPendingDeposit(false);
+    }
+  };
+  
+  const handleWithdraw = async () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    
+    setErrorMessage('');
+    
+    try {
+      await withdraw(amount);
+    } catch (error: any) {
+      console.error('Error in handleWithdraw:', error);
+      setErrorMessage(error?.message || 'Withdrawal failed. Please try again.');
+    }
+  };
+  
+  // Calculate preview amounts
+  const previewDepositShares = amount ? parseFloat(amount) * exchangeRate.spvKRWSPerKRWS : 0;
+  const previewWithdrawAssets = amount ? parseFloat(amount) : 0;
 
   return (
     <Card className="h-full">
@@ -401,7 +605,7 @@ const DepositWithdrawCard = () => {
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 <button
-                  onClick={() => setAmount('0')}
+                  onClick={handleMax}
                   className="px-3 py-1.5 text-sm font-semibold text-primary-500 hover:bg-primary-50 rounded-lg transition-colors"
                 >
                   MAX
@@ -418,13 +622,13 @@ const DepositWithdrawCard = () => {
               <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">You will receive</span>
-                  <span className="font-semibold">0.00 spvKRWS</span>
+                  <span className="font-semibold">{previewDepositShares.toFixed(2)} spvKRWS</span>
                 </div>
                 <div className="flex justify-between items-start">
                   <span className="text-gray-600">Exchange Rate</span>
                   <div className="text-right font-semibold">
                     <div>1 KRWS</div>
-                    <div>= 1 spvKRWS</div>
+                    <div>= {exchangeRate.spvKRWSPerKRWS.toFixed(4)} spvKRWS</div>
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
@@ -433,13 +637,39 @@ const DepositWithdrawCard = () => {
                 </div>
               </div>
 
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+              )}
+
+              {/* Debug Info */}
+              {isLoadingKrwsAddress && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">Loading KRWS token address...</p>
+                </div>
+              )}
+
+              {!isLoadingKrwsAddress && !krwsAddress && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">Unable to fetch KRWS token address. Please refresh the page.</p>
+                </div>
+              )}
+
               <Button 
                 fullWidth 
                 size="lg"
-                disabled={!amount || parseFloat(amount) <= 0}
+                onClick={handleDeposit}
+                disabled={!amount || parseFloat(amount) <= 0 || isApproving || isApproveConfirming || isDepositing || isDepositConfirming || isLoadingKrwsAddress || !krwsAddress || pendingDeposit}
                 className="py-4 text-lg font-semibold"
               >
-                Deposit KRWS
+                {isLoadingKrwsAddress ? 'Loading...' :
+                 !krwsAddress ? 'KRWS Address Not Available' :
+                 isApproving || isApproveConfirming ? 'Approving...' : 
+                 pendingDeposit ? 'Waiting for approval...' :
+                 isDepositing || isDepositConfirming ? 'Depositing...' : 
+                 'Deposit KRWS'}
               </Button>
             </>
           )}
@@ -449,29 +679,37 @@ const DepositWithdrawCard = () => {
               <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">You will receive</span>
-                  <span className="font-semibold">0.00 KRWS</span>
+                  <span className="font-semibold">{previewWithdrawAssets.toFixed(2)} KRWS</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Available to withdraw</span>
-                  <span className="font-semibold">0.00 spvKRWS</span>
+                  <span className="font-semibold">{maxWithdraw.toFixed(2)} KRWS</span>
                 </div>
                 <div className="flex justify-between items-start">
                   <span className="text-gray-600">Exchange Rate</span>
                   <div className="text-right font-semibold">
                     <div>1 spvKRWS</div>
-                    <div>= 1 KRWS</div>
+                    <div>= {exchangeRate.krwsPerSpvKRWS.toFixed(4)} KRWS</div>
                   </div>
                 </div>
               </div>
+
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{errorMessage}</p>
+                </div>
+              )}
 
               <Button 
                 fullWidth 
                 size="lg"
                 variant="outline"
-                disabled={!amount || parseFloat(amount) <= 0}
+                onClick={handleWithdraw}
+                disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > maxWithdraw || isWithdrawing || isWithdrawConfirming}
                 className="py-4 text-lg font-semibold"
               >
-                Withdraw KRWS
+                {isWithdrawing || isWithdrawConfirming ? 'Withdrawing...' : 'Withdraw KRWS'}
               </Button>
             </>
           )}
@@ -482,7 +720,17 @@ const DepositWithdrawCard = () => {
 };
 
 // Main Dashboard Layout
-export const VaultDashboard: React.FC<VaultDashboardProps> = ({ address }) => {
+export const VaultDashboard: React.FC<VaultDashboardProps> = () => {
+  const balances = useUserBalances();
+  const vaultData = useVaultData();
+
+  // Refetch all data when transaction completes
+  const handleTransactionComplete = () => {
+    console.log('Refetching all data...');
+    balances.refetch();
+    vaultData.refetch();
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
@@ -490,8 +738,8 @@ export const VaultDashboard: React.FC<VaultDashboardProps> = ({ address }) => {
         <div className="xl:col-span-8 space-y-6">
           {/* Top Stats Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BalanceCard />
-            <VaultCard />
+            <BalanceCard balances={balances} />
+            <VaultCard vaultData={vaultData} />
           </div>
           
           {/* Loan Activity */}
@@ -500,7 +748,10 @@ export const VaultDashboard: React.FC<VaultDashboardProps> = ({ address }) => {
 
         {/* Right Column - Deposit/Withdraw */}
         <div className="xl:col-span-4">
-          <DepositWithdrawCard />
+          <DepositWithdrawCard 
+            balances={balances} 
+            onTransactionComplete={handleTransactionComplete} 
+          />
         </div>
       </div>
     </div>
