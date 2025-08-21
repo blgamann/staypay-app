@@ -20,14 +20,22 @@ import krwcIcon from "../assets/krwc.png";
 
 interface VaultDashboardProps {
   address?: string;
+  isCorrectNetwork?: boolean;
+  isConnected?: boolean;
+  onConnectWallet?: () => void;
 }
 
 // Balance Card Component
 const BalanceCard = ({
   balances,
+  isConnected = true,
+  isCorrectNetwork = true,
 }: {
   balances: ReturnType<typeof useUserBalances>;
+  isConnected?: boolean;
+  isCorrectNetwork?: boolean;
 }) => {
+  const shouldShowData = isConnected && isCorrectNetwork;
   // Hardcoded KRWS address for Kairos testnet
   const KRWS_ADDRESS = '0x525fe3fdeef53e64146818483a8084ae5d61fe50';
   const VAULT_ADDRESS = '0x99f531Dd92E413aFc992164e779Be3F2fAABFEc8';
@@ -40,6 +48,13 @@ const BalanceCard = ({
     <Card>
       <CardBody>
         <h3 className="text-lg font-semibold mb-4 text-white">My Balance</h3>
+        {!shouldShowData && (
+          <div className="mb-4 p-3 bg-defi-darker rounded-lg">
+            <p className="text-sm text-defi-medium-text text-center">
+              {!isConnected ? 'Connect your wallet to view balances' : 'Switch to Kairos network to view balances'}
+            </p>
+          </div>
+        )}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -47,7 +62,7 @@ const BalanceCard = ({
               <span className="font-medium text-base">KAIA</span>
             </div>
             <span className="font-mono font-semibold text-lg text-white">
-              {balances.kaia.toFixed(4)}
+              {shouldShowData ? balances.kaia.toFixed(4) : '--'}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -61,7 +76,7 @@ const BalanceCard = ({
               </button>
             </div>
             <span className="font-mono font-semibold text-lg text-white">
-              {balances.krws.toFixed(2)}
+              {shouldShowData ? balances.krws.toFixed(2) : '--'}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -78,10 +93,10 @@ const BalanceCard = ({
             </div>
             <div className="text-right">
               <div className="font-mono font-semibold text-lg text-white">
-                {balances.spvKRWS.toFixed(2)}
+                {shouldShowData ? balances.spvKRWS.toFixed(2) : '--'}
               </div>
               <div className="text-xs text-defi-medium-text">
-                ≈ {balances.spvKRWSInKRWS.toFixed(2)} KRWS
+                {shouldShowData ? `≈ ${balances.spvKRWSInKRWS.toFixed(2)} KRWS` : ''}
               </div>
             </div>
           </div>
@@ -706,11 +721,18 @@ const DebugSection = ({
   onTransactionComplete,
   vaultData,
   onRefetchExchangeRate,
+  isCorrectNetwork = true,
+  isConnected = true,
+  onConnectWallet,
 }: {
   onTransactionComplete: () => void;
+  isCorrectNetwork?: boolean;
+  isConnected?: boolean;
+  onConnectWallet?: () => void;
   vaultData: ReturnType<typeof useVaultData>;
   onRefetchExchangeRate: () => void;
 }) => {
+  const shouldEnableInputs = isConnected && isCorrectNetwork;
   const [lendAmount, setLendAmount] = useState("");
   const [debugMessage, setDebugMessage] = useState("");
   const [pendingRepay, setPendingRepay] = useState(false);
@@ -920,6 +942,7 @@ const DebugSection = ({
               value={lendAmount}
               onChange={(e) => setLendAmount(e.target.value)}
               placeholder="0.0"
+              disabled={!shouldEnableInputs}
               className="w-full px-3 py-2 pr-24 bg-defi-darker border border-defi-border rounded-lg focus:outline-none focus:border-primary-500 text-white placeholder-defi-medium-text"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -929,8 +952,9 @@ const DebugSection = ({
         </div>
         <Button
           fullWidth
-          onClick={handleLend}
+          onClick={!isConnected ? onConnectWallet : handleLend}
           disabled={
+            !isCorrectNetwork ||
             !lendAmount ||
             parseFloat(lendAmount) <= 0 ||
             parseFloat(lendAmount) > MAX_LOAN_AMOUNT ||
@@ -940,7 +964,7 @@ const DebugSection = ({
           variant="primary"
           size="sm"
         >
-          {isLending || isLendConfirming ? "Lending..." : "Lend to Myself"}
+          {!isConnected ? "Connect Wallet" : !isCorrectNetwork ? "Switch Network" : isLending || isLendConfirming ? "Lending..." : "Lend to Myself"}
         </Button>
         <div className="text-xs text-defi-medium-text mt-2 space-y-1">
           <div>
@@ -969,8 +993,9 @@ const DebugSection = ({
         </div>
         <Button
           fullWidth
-          onClick={handleRepay}
+          onClick={!isConnected ? onConnectWallet : handleRepay}
           disabled={
+            !isCorrectNetwork ||
             totalDebt <= 0 || 
             isApprovePending || 
             isApproveConfirming || 
@@ -982,7 +1007,11 @@ const DebugSection = ({
           variant="primary"
           size="sm"
         >
-          {!krwsAddress
+          {!isConnected
+            ? "Connect Wallet"
+            : !isCorrectNetwork
+            ? "Switch Network"
+            : !krwsAddress
             ? "Loading..."
             : isApprovePending || isApproveConfirming
             ? "Approving..."
@@ -1031,11 +1060,18 @@ const DepositWithdrawCard = ({
   balances,
   onTransactionComplete,
   vaultData,
+  isCorrectNetwork = true,
+  isConnected = true,
+  onConnectWallet,
 }: {
   balances: ReturnType<typeof useUserBalances>;
   onTransactionComplete: () => void;
   vaultData: ReturnType<typeof useVaultData>;
+  isCorrectNetwork?: boolean;
+  isConnected?: boolean;
+  onConnectWallet?: () => void;
 }) => {
+  const shouldEnableInputs = isConnected && isCorrectNetwork;
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -1311,6 +1347,7 @@ const DepositWithdrawCard = ({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.0"
+                disabled={!shouldEnableInputs}
                 className="w-full px-4 py-4 pr-32 text-2xl font-semibold bg-defi-darker rounded-xl border border-defi-border focus:border-primary-500 focus:outline-none transition-colors text-white placeholder-defi-medium-text"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -1380,8 +1417,9 @@ const DepositWithdrawCard = ({
               <Button
                 fullWidth
                 size="lg"
-                onClick={handleDeposit}
+                onClick={!isConnected ? onConnectWallet : handleDeposit}
                 disabled={
+                  !isCorrectNetwork ||
                   !amount ||
                   parseFloat(amount) <= 0 ||
                   isApproving ||
@@ -1394,7 +1432,11 @@ const DepositWithdrawCard = ({
                 }
                 className="py-4 text-lg font-semibold"
               >
-                {isLoadingKrwsAddress
+                {!isConnected
+                  ? "Connect Wallet"
+                  : !isCorrectNetwork
+                  ? "Switch Network"
+                  : isLoadingKrwsAddress
                   ? "Loading..."
                   : !krwsAddress
                   ? "KRWS Address Not Available"
@@ -1444,8 +1486,9 @@ const DepositWithdrawCard = ({
                 fullWidth
                 size="lg"
                 variant="outline"
-                onClick={handleWithdraw}
+                onClick={!isConnected ? onConnectWallet : handleWithdraw}
                 disabled={
+                  !isCorrectNetwork ||
                   !amount ||
                   parseFloat(amount) <= 0 ||
                   parseFloat(amount) > maxWithdraw ||
@@ -1454,7 +1497,11 @@ const DepositWithdrawCard = ({
                 }
                 className="py-4 text-lg font-semibold"
               >
-                {isWithdrawing || isWithdrawConfirming
+                {!isConnected
+                  ? "Connect Wallet"
+                  : !isCorrectNetwork
+                  ? "Switch Network"
+                  : isWithdrawing || isWithdrawConfirming
                   ? "Withdrawing..."
                   : "Withdraw KRWS"}
               </Button>
@@ -1473,6 +1520,9 @@ const DepositWithdrawCard = ({
               onTransactionComplete={onTransactionComplete}
               vaultData={vaultData}
               onRefetchExchangeRate={exchangeRate.refetch}
+              isCorrectNetwork={isCorrectNetwork}
+              isConnected={isConnected}
+              onConnectWallet={onConnectWallet}
             />
           </div>
         </div>
@@ -1482,7 +1532,11 @@ const DepositWithdrawCard = ({
 };
 
 // Main Dashboard Layout
-export const VaultDashboard: React.FC<VaultDashboardProps> = () => {
+export const VaultDashboard: React.FC<VaultDashboardProps> = ({ 
+  isCorrectNetwork = true,
+  isConnected = true,
+  onConnectWallet
+}) => {
   const balances = useUserBalances();
   const vaultData = useVaultData();
 
@@ -1500,7 +1554,7 @@ export const VaultDashboard: React.FC<VaultDashboardProps> = () => {
         <div className="xl:col-span-8 space-y-6">
           {/* Top Stats Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BalanceCard balances={balances} />
+            <BalanceCard balances={balances} isConnected={isConnected} isCorrectNetwork={isCorrectNetwork} />
             <VaultCard vaultData={vaultData} />
           </div>
 
@@ -1514,6 +1568,9 @@ export const VaultDashboard: React.FC<VaultDashboardProps> = () => {
             balances={balances}
             onTransactionComplete={handleTransactionComplete}
             vaultData={vaultData}
+            isCorrectNetwork={isCorrectNetwork}
+            isConnected={isConnected}
+            onConnectWallet={onConnectWallet}
           />
         </div>
       </div>
