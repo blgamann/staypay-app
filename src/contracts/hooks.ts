@@ -99,23 +99,29 @@ export function useUserBalances() {
 export function useExchangeRate() {
   const oneShare = parseUnits('1', 18);
   
-  const { data: assetsPerShare } = useReadContract({
+  const { data: assetsPerShare, refetch: refetchAssetsPerShare } = useReadContract({
     address: CONTRACTS.VAULT_ADDRESS,
     abi: ABIS.VAULT,
     functionName: 'convertToAssets',
     args: [oneShare],
   });
 
-  const { data: sharesPerAsset } = useReadContract({
+  const { data: sharesPerAsset, refetch: refetchSharesPerAsset } = useReadContract({
     address: CONTRACTS.VAULT_ADDRESS,
     abi: ABIS.VAULT,
     functionName: 'convertToShares',
     args: [oneShare],
   });
 
+  const refetch = () => {
+    refetchAssetsPerShare();
+    refetchSharesPerAsset();
+  };
+
   return {
     krwsPerSpvKRWS: assetsPerShare ? Number(formatUnits(assetsPerShare as bigint, 18)) : 1,
     spvKRWSPerKRWS: sharesPerAsset ? Number(formatUnits(sharesPerAsset as bigint, 18)) : 1,
+    refetch,
   };
 }
 
@@ -274,5 +280,159 @@ export function useWithdraw() {
     error,
     reset,
     refetchMaxWithdraw,
+  };
+}
+
+// Get user's debt information
+export function useDebt() {
+  const { address } = useAccount();
+  
+  const { data: debtData, refetch: refetchDebt } = useReadContract({
+    address: CONTRACTS.VAULT_ADDRESS,
+    abi: ABIS.VAULT,
+    functionName: 'debtOf',
+    args: address ? [address] : undefined,
+  });
+
+  if (!debtData || !Array.isArray(debtData) || debtData.length < 3) {
+    return {
+      totalDebt: 0,
+      principal: 0,
+      fee: 0,
+      refetchDebt,
+    };
+  }
+
+  const [total, principal, fee] = debtData as [bigint, bigint, bigint];
+
+  return {
+    totalDebt: Number(formatUnits(total, 18)),
+    principal: Number(formatUnits(principal, 18)),
+    fee: Number(formatUnits(fee, 18)),
+    refetchDebt,
+  };
+}
+
+// Lend KRWS (owner only)
+export function useLend() {
+  const { address } = useAccount();
+  const { writeContract, data: hash, isPending, isError, error, reset } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  const lend = async (amount: string, borrower?: string, receiver?: string) => {
+    if (!address) return;
+    
+    const amountInWei = parseUnits(amount, 18);
+    const borrowerAddress = borrower || address;
+    const receiverAddress = receiver || address;
+    
+    writeContract({
+      address: CONTRACTS.VAULT_ADDRESS,
+      abi: ABIS.VAULT,
+      functionName: 'lend',
+      args: [borrowerAddress as Address, receiverAddress as Address, amountInWei],
+    });
+  };
+
+  return {
+    lend,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    isError,
+    error,
+    reset,
+  };
+}
+
+// Repay debt
+export function useRepay() {
+  const { address } = useAccount();
+  
+  // Separate write contracts for approve and repay
+  const { 
+    writeContract: writeApprove, 
+    data: approveHash, 
+    isPending: isApprovePending, 
+    isError: isApproveError, 
+    error: approveError, 
+    reset: resetApprove 
+  } = useWriteContract();
+  
+  const { 
+    writeContract: writeRepay, 
+    data: repayHash, 
+    isPending: isRepayPending, 
+    isError: isRepayError, 
+    error: repayError, 
+    reset: resetRepay 
+  } = useWriteContract();
+  
+  const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
+  const { isLoading: isRepayConfirming, isSuccess: isRepayConfirmed } = useWaitForTransactionReceipt({ hash: repayHash });
+
+  // Get KRWS token address from vault
+  const { data: krwsAddress } = useReadContract({
+    address: CONTRACTS.VAULT_ADDRESS,
+    abi: ABIS.VAULT,
+    functionName: 'asset',
+  });
+
+  // Check current allowance
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: krwsAddress as Address,
+    abi: ERC20_ABI,
+    functionName: 'allowance',
+    args: address && krwsAddress ? [address, CONTRACTS.VAULT_ADDRESS] : undefined,
+  });
+
+  const repay = async (borrower?: string) => {
+    if (!address) return;
+    
+    const borrowerAddress = borrower || address;
+    
+    writeRepay({
+      address: CONTRACTS.VAULT_ADDRESS,
+      abi: ABIS.VAULT,
+      functionName: 'repay',
+      args: [borrowerAddress as Address],
+    });
+  };
+
+  // Approve KRWS for repayment
+  const approveRepay = async (amount: string) => {
+    if (!krwsAddress) return;
+    
+    const amountInWei = parseUnits(amount, 18);
+    
+    writeApprove({
+      address: krwsAddress as Address,
+      abi: ERC20_ABI,
+      functionName: 'approve',
+      args: [CONTRACTS.VAULT_ADDRESS, amountInWei],
+    });
+  };
+
+  return {
+    repay,
+    approveRepay,
+    // Approve states
+    isApprovePending,
+    isApproveConfirming,
+    isApproveConfirmed,
+    isApproveError,
+    approveError,
+    resetApprove,
+    // Repay states
+    isRepayPending,
+    isRepayConfirming,
+    isRepayConfirmed,
+    isRepayError,
+    repayError,
+    resetRepay,
+    // Allowance
+    allowance,
+    refetchAllowance,
+    krwsAddress,
   };
 }
