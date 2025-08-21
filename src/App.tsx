@@ -1,6 +1,5 @@
 import { VaultDashboard } from './layouts/VaultDashboard';
 import { Button } from './components/ui/Button';
-import { Card, CardBody } from './components/ui/Card';
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { kaiaKairos } from './config/wagmi';
@@ -52,7 +51,7 @@ function App() {
       window.ethereum.on('chainChanged', handleChainChanged);
       
       return () => {
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        window.ethereum?.removeListener('chainChanged', handleChainChanged);
       };
     }
   }, []);
