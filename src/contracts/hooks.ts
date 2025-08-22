@@ -257,15 +257,11 @@ export function useWithdraw() {
     
     const amountInWei = parseUnits(amount, 18);
     
-    // Check if amount exceeds max withdrawable
-    if (maxWithdrawAmount && amountInWei > (maxWithdrawAmount as bigint)) {
-      throw new Error('Amount exceeds maximum withdrawable');
-    }
-    
+    // Use redeem instead of withdraw to burn spvKRWS shares
     writeContract({
       address: CONTRACTS.VAULT_ADDRESS,
       abi: ABIS.VAULT,
-      functionName: 'withdraw',
+      functionName: 'redeem',
       args: [amountInWei, address, address],
     });
   };
@@ -433,6 +429,61 @@ export function useRepay() {
     // Allowance
     allowance,
     refetchAllowance,
+    krwsAddress,
+  };
+}
+
+// ============ KRWS Mint Hook ============
+export function useMintKRWS() {
+  // Get KRWS token address from vault
+  const { data: krwsAddress } = useReadContract({
+    address: CONTRACTS.VAULT_ADDRESS,
+    abi: ABIS.VAULT,
+    functionName: 'asset',
+  });
+
+  // Write contract for minting
+  const {
+    writeContract: writeMint,
+    isPending: isMintPending,
+    isError: isMintError,
+    error: mintError,
+    data: mintHash,
+    reset: resetMint,
+  } = useWriteContract();
+
+  // Wait for mint transaction
+  const {
+    isLoading: isMintConfirming,
+    isSuccess: isMintConfirmed,
+  } = useWaitForTransactionReceipt({
+    hash: mintHash,
+  });
+
+  // Mint function
+  const mint = async (toAddress: string, amount: string = '1000000') => {
+    if (!krwsAddress) {
+      throw new Error('KRWS address not available');
+    }
+
+    const amountInWei = parseUnits(amount, 18);
+    
+    writeMint({
+      address: krwsAddress as Address,
+      abi: ERC20_ABI,
+      functionName: 'mint',
+      args: [toAddress as Address, amountInWei],
+    });
+  };
+
+  return {
+    mint,
+    isPending: isMintPending,
+    isConfirming: isMintConfirming,
+    isConfirmed: isMintConfirmed,
+    isError: isMintError,
+    error: mintError,
+    reset: resetMint,
     krwsAddress,
   };
 }

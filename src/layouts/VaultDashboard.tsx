@@ -13,10 +13,19 @@ import {
   useLend,
   useRepay,
   useDebt,
+  useMintKRWS,
 } from "../contracts/hooks";
+import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
 import kaiaIcon from "../assets/kaia.png";
 import krwcIcon from "../assets/krwc.png";
+
+// Utility function to format numbers with commas
+const formatNumber = (num: number, decimals: number = 2): string => {
+  const [integerPart, decimalPart] = num.toFixed(decimals).split(".");
+  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+};
 
 interface VaultDashboardProps {
   address?: string;
@@ -25,84 +34,291 @@ interface VaultDashboardProps {
   onConnectWallet?: () => void;
 }
 
+// KRWS Mint Dialog Component
+const MintDialog = ({
+  isOpen,
+  onClose,
+  onTransactionComplete,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onTransactionComplete: () => void;
+}) => {
+  const { address: connectedAddress } = useAccount();
+  const [mintAddress, setMintAddress] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+
+  const {
+    mint,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    isError,
+    error,
+    reset,
+    krwsAddress,
+  } = useMintKRWS();
+
+  // Set default address when dialog opens
+  useEffect(() => {
+    if (isOpen && connectedAddress) {
+      setMintAddress(connectedAddress);
+    }
+  }, [isOpen, connectedAddress]);
+
+  // Handle successful mint
+  useEffect(() => {
+    if (isConfirmed) {
+      onTransactionComplete();
+      onClose();
+      reset();
+      setStatusMessage("");
+      setMintAddress("");
+    }
+  }, [isConfirmed, onClose, onTransactionComplete, reset]);
+
+  // Handle errors
+  useEffect(() => {
+    if (isError && error) {
+      const errorMessage = error.message || "";
+      if (
+        errorMessage.includes("User rejected") ||
+        errorMessage.includes("User denied")
+      ) {
+        setStatusMessage("");
+        reset();
+      } else {
+        setStatusMessage("Mint failed. Please try again.");
+      }
+    }
+  }, [isError, error, reset]);
+
+  const handleMint = async () => {
+    if (!mintAddress) {
+      setStatusMessage("Please enter an address");
+      return;
+    }
+
+    // Basic address validation
+    if (!mintAddress.startsWith("0x") || mintAddress.length !== 42) {
+      setStatusMessage("Invalid address format");
+      return;
+    }
+
+    try {
+      setStatusMessage("");
+      await mint(mintAddress, "1000000"); // 1 million KRWS
+    } catch (err: any) {
+      console.error("Mint error:", err);
+      setStatusMessage(err?.message || "Mint failed");
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-defi-card rounded-2xl p-6 max-w-md w-full border border-defi-border">
+        <h3 className="text-xl font-bold text-white mb-4">Mint Test KRWS</h3>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-defi-light-text mb-2">
+              Recipient Address
+            </label>
+            <input
+              type="text"
+              value={mintAddress}
+              onChange={(e) => setMintAddress(e.target.value)}
+              placeholder="0x..."
+              className="w-full px-4 py-3 bg-defi-darker border border-defi-border rounded-lg focus:outline-none focus:border-primary-500 text-white placeholder-defi-medium-text font-mono text-sm"
+            />
+          </div>
+
+          <div className="p-4 bg-defi-darker rounded-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-defi-medium-text">Amount to mint:</span>
+              <span className="font-mono font-bold text-xl text-white">
+                {formatNumber(1000000, 0)} KRWS
+              </span>
+            </div>
+          </div>
+
+          {statusMessage && (
+            <div
+              className={`p-3 rounded-lg text-sm ${
+                statusMessage.includes("success")
+                  ? "bg-green-500/20 text-green-400 border border-green-500/50"
+                  : "bg-red-500/20 text-red-400 border border-red-500/50"
+              }`}
+            >
+              {statusMessage}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              onClick={onClose}
+              variant="secondary"
+              fullWidth
+              disabled={isPending || isConfirming}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMint}
+              variant="primary"
+              fullWidth
+              disabled={
+                !mintAddress || !krwsAddress || isPending || isConfirming
+              }
+            >
+              {isPending || isConfirming ? "Minting..." : "Mint KRWS"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Balance Card Component
 const BalanceCard = ({
   balances,
   isConnected = true,
   isCorrectNetwork = true,
+  onTransactionComplete,
 }: {
   balances: ReturnType<typeof useUserBalances>;
   isConnected?: boolean;
   isCorrectNetwork?: boolean;
+  onTransactionComplete?: () => void;
 }) => {
   const shouldShowData = isConnected && isCorrectNetwork;
+  const [showMintDialog, setShowMintDialog] = useState(false);
   // Hardcoded KRWS address for Kairos testnet
-  const KRWS_ADDRESS = '0x525fe3fdeef53e64146818483a8084ae5d61fe50';
-  const VAULT_ADDRESS = '0x99f531Dd92E413aFc992164e779Be3F2fAABFEc8';
-  
+  const KRWS_ADDRESS = "0xA60100f0A4dbcaD4814344BA04F8c53918A5f968";
+  const VAULT_ADDRESS = "0xD967bB022e1185658A287efCC7e25f40BF77395a";
+
   const openExplorer = (address: string) => {
-    window.open(`https://kairos.kaiascan.io/address/${address}`, '_blank');
+    window.open(`https://kairos.kaiascan.io/address/${address}`, "_blank");
   };
 
   return (
-    <Card>
-      <CardBody>
-        <h3 className="text-lg font-semibold mb-4 text-white">My Balance</h3>
-        {!shouldShowData && (
-          <div className="mb-4 p-3 bg-defi-darker rounded-lg">
-            <p className="text-sm text-defi-medium-text text-center">
-              {!isConnected ? 'Connect your wallet to view balances' : 'Switch to Kairos network to view balances'}
-            </p>
-          </div>
-        )}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <img src={kaiaIcon} alt="KAIA" className="w-8 h-8 rounded-full" />
-              <span className="font-medium text-base">KAIA</span>
+    <>
+      <Card>
+        <CardBody>
+          <h3 className="text-lg font-semibold mb-4 text-white">My Balance</h3>
+          {!shouldShowData && (
+            <div className="mb-4 p-3 bg-defi-darker rounded-lg">
+              <p className="text-sm text-defi-medium-text text-center">
+                {!isConnected
+                  ? "Connect your wallet to view balances"
+                  : "Switch to Kairos network to view balances"}
+              </p>
             </div>
-            <span className="font-mono font-semibold text-lg text-white">
-              {shouldShowData ? balances.kaia.toFixed(4) : '--'}
-            </span>
+          )}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <img
+                  src={kaiaIcon}
+                  alt="KAIA"
+                  className="w-8 h-8 rounded-full"
+                />
+                <span className="font-medium text-base">KAIA</span>
+              </div>
+              <span className="font-mono font-semibold text-lg text-white">
+                {shouldShowData ? formatNumber(balances.kaia, 4) : "--"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <img
+                  src={krwcIcon}
+                  alt="KRWS"
+                  className="w-8 h-8 rounded-full"
+                />
+                <button
+                  onClick={() => openExplorer(KRWS_ADDRESS)}
+                  className="font-medium text-base underline hover:text-primary-600 cursor-pointer transition-colors"
+                >
+                  KRWS
+                </button>
+              </div>
+              <span className="font-mono font-semibold text-lg text-white">
+                {shouldShowData ? formatNumber(balances.krws, 2) : "--"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-500 p-0.5 flex items-center justify-center">
+                  <img
+                    src={krwcIcon}
+                    alt="spvKRWS"
+                    className="w-full h-full rounded-full"
+                    style={{ filter: "invert(1)" }}
+                  />
+                </div>
+                <button
+                  onClick={() => openExplorer(VAULT_ADDRESS)}
+                  className="font-medium text-base underline hover:text-primary-600 cursor-pointer transition-colors"
+                >
+                  spvKRWS
+                </button>
+              </div>
+              <div className="text-right">
+                <div className="font-mono font-semibold text-lg text-white">
+                  {shouldShowData ? formatNumber(balances.spvKRWS, 2) : "--"}
+                </div>
+                <div className="text-xs text-defi-medium-text">
+                  {shouldShowData
+                    ? `≈ ${formatNumber(balances.spvKRWSInKRWS, 2)} KRWS`
+                    : ""}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <img src={krwcIcon} alt="KRWS" className="w-8 h-8 rounded-full" />
-              <button 
-                onClick={() => openExplorer(KRWS_ADDRESS)}
-                className="font-medium text-base underline hover:text-primary-600 cursor-pointer transition-colors"
+
+          {/* Faucet Links Section */}
+          <div className="mt-4 pt-4 border-t border-defi-border">
+            <div className="text-xs text-defi-medium-text mb-2">
+              Need test tokens?
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.open("https://faucet.kaia.io/", "_blank")}
+                className="flex-1 px-3 py-2 bg-defi-darker rounded-lg hover:bg-defi-border transition-colors text-defi-light-text hover:text-white"
               >
-                KRWS
+                <div className="flex items-center justify-center gap-2">
+                  <span>💧</span>
+                  <span className="text-sm font-medium">Get KAIA</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setShowMintDialog(true)}
+                className="flex-1 px-3 py-2 bg-defi-darker rounded-lg hover:bg-defi-border transition-colors text-defi-light-text hover:text-white"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>💧</span>
+                  <span className="text-sm font-medium">Get KRWS</span>
+                </div>
               </button>
             </div>
-            <span className="font-mono font-semibold text-lg text-white">
-              {shouldShowData ? balances.krws.toFixed(2) : '--'}
-            </span>
           </div>
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500 p-0.5 flex items-center justify-center">
-                <img src={krwcIcon} alt="spvKRWS" className="w-full h-full rounded-full" style={{ filter: 'invert(1)' }} />
-              </div>
-              <button 
-                onClick={() => openExplorer(VAULT_ADDRESS)}
-                className="font-medium text-base underline hover:text-primary-600 cursor-pointer transition-colors"
-              >
-                spvKRWS
-              </button>
-            </div>
-            <div className="text-right">
-              <div className="font-mono font-semibold text-lg text-white">
-                {shouldShowData ? balances.spvKRWS.toFixed(2) : '--'}
-              </div>
-              <div className="text-xs text-defi-medium-text">
-                {shouldShowData ? `≈ ${balances.spvKRWSInKRWS.toFixed(2)} KRWS` : ''}
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardBody>
-    </Card>
+        </CardBody>
+      </Card>
+
+      {/* Mint Dialog */}
+      <MintDialog
+        isOpen={showMintDialog}
+        onClose={() => setShowMintDialog(false)}
+        onTransactionComplete={() => {
+          onTransactionComplete?.();
+          balances.refetch();
+        }}
+      />
+    </>
   );
 };
 
@@ -112,25 +328,16 @@ const VaultCard = ({
 }: {
   vaultData: ReturnType<typeof useVaultData>;
 }) => {
-  const VAULT_ADDRESS = '0x99f531Dd92E413aFc992164e779Be3F2fAABFEc8';
-  
-  const openExplorer = (address: string) => {
-    window.open(`https://kairos.kaiascan.io/address/${address}`, '_blank');
-  };
+  const VAULT_ADDRESS = "0xD967bB022e1185658A287efCC7e25f40BF77395a";
 
-  const formatAmount = (amount: number) => {
-    if (amount >= 1000000) {
-      return `₩${(amount / 1000000).toFixed(1)}M`;
-    } else if (amount >= 1000) {
-      return `₩${(amount / 1000).toFixed(1)}K`;
-    }
-    return `₩${amount.toFixed(2)}`;
+  const openExplorer = (address: string) => {
+    window.open(`https://kairos.kaiascan.io/address/${address}`, "_blank");
   };
 
   return (
     <Card>
       <CardBody>
-        <button 
+        <button
           onClick={() => openExplorer(VAULT_ADDRESS)}
           className="block text-lg font-semibold mb-4 underline hover:text-primary-600 cursor-pointer transition-colors text-left"
         >
@@ -139,21 +346,23 @@ const VaultCard = ({
         <div className="space-y-4">
           <div>
             <div className="text-4xl font-bold text-white">
-              {formatAmount(vaultData.tvl)}
+              ₩{formatNumber(vaultData.tvl, 2)}
             </div>
-            <div className="text-sm text-defi-medium-text mt-1">Total Value Locked</div>
+            <div className="text-sm text-defi-medium-text mt-1">
+              Total Value Locked
+            </div>
           </div>
           <div className="space-y-3 pt-2">
             <div className="flex justify-between items-center">
               <span className="text-defi-medium-text">Available Liquidity</span>
               <span className="font-semibold text-white">
-                {formatAmount(vaultData.availableLiquidity)}
+                ₩{formatNumber(vaultData.availableLiquidity, 2)}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-defi-medium-text">Active Loans</span>
               <span className="font-semibold text-white">
-                {formatAmount(vaultData.activeLoans)}
+                ₩{formatNumber(vaultData.activeLoans, 2)}
               </span>
             </div>
             <div className="pt-2">
@@ -603,7 +812,9 @@ const LoanActivityCard = () => {
         {/* Summary Stats */}
         <div className="grid grid-cols-4 gap-4 p-3 bg-defi-darker rounded-lg mb-4 flex-shrink-0">
           <div className="text-center">
-            <div className="text-xl font-bold text-white">{loanStats.totalLoans}</div>
+            <div className="text-xl font-bold text-white">
+              {loanStats.totalLoans}
+            </div>
             <div className="text-xs text-defi-medium-text">Total Loans</div>
           </div>
           <div className="text-center">
@@ -780,7 +991,13 @@ const DebugSection = ({
       resetLend();
       setTimeout(() => setDebugMessage(""), 3000);
     }
-  }, [isLendConfirmed, onTransactionComplete, onRefetchExchangeRate, refetchDebt, resetLend]);
+  }, [
+    isLendConfirmed,
+    onTransactionComplete,
+    onRefetchExchangeRate,
+    refetchDebt,
+    resetLend,
+  ]);
 
   // Handle approve error or cancellation for repay
   useEffect(() => {
@@ -808,17 +1025,17 @@ const DebugSection = ({
     const executeRepay = async () => {
       if (isApproveConfirmed && pendingRepay && !isRepayPending) {
         console.log("Repay approval confirmed! Now repaying...");
-        
+
         // Immediately set pendingRepay to false to prevent duplicate execution
         setPendingRepay(false);
-        
+
         // Wait a bit for allowance to be updated on chain
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        
+
         // Force refetch allowance
         const { data: newAllowance } = await refetchAllowance();
         console.log("New allowance after approval:", newAllowance);
-        
+
         try {
           await repay(); // Repay for self
         } catch (error: any) {
@@ -827,11 +1044,11 @@ const DebugSection = ({
             error?.message || "Repay failed after approval. Please try again."
           );
         }
-        
+
         resetApprove(); // Reset approve state
       }
     };
-    
+
     executeRepay();
   }, [isApproveConfirmed, pendingRepay, isRepayPending]); // Reduced dependencies
 
@@ -868,7 +1085,13 @@ const DebugSection = ({
       resetRepay();
       setTimeout(() => setDebugMessage(""), 3000);
     }
-  }, [isRepayConfirmed, onTransactionComplete, onRefetchExchangeRate, refetchDebt, resetRepay]);
+  }, [
+    isRepayConfirmed,
+    onTransactionComplete,
+    onRefetchExchangeRate,
+    refetchDebt,
+    resetRepay,
+  ]);
 
   const handleLend = async () => {
     if (!lendAmount || parseFloat(lendAmount) <= 0) return;
@@ -925,7 +1148,9 @@ const DebugSection = ({
       }
     } catch (error: any) {
       console.error("Error in handleRepay:", error);
-      setDebugMessage(error?.message || "Transaction failed. Please try again.");
+      setDebugMessage(
+        error?.message || "Transaction failed. Please try again."
+      );
       setPendingRepay(false);
     }
   };
@@ -946,7 +1171,9 @@ const DebugSection = ({
               className="w-full px-3 py-2 pr-24 bg-defi-darker border border-defi-border rounded-lg focus:outline-none focus:border-primary-500 text-white placeholder-defi-medium-text"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
-              <span className="text-sm font-medium text-defi-medium-text">KRWS</span>
+              <span className="text-sm font-medium text-defi-medium-text">
+                KRWS
+              </span>
             </div>
           </div>
         </div>
@@ -964,7 +1191,13 @@ const DebugSection = ({
           variant="primary"
           size="sm"
         >
-          {!isConnected ? "Connect Wallet" : !isCorrectNetwork ? "Switch Network" : isLending || isLendConfirming ? "Lending..." : "Lend to Myself"}
+          {!isConnected
+            ? "Connect Wallet"
+            : !isCorrectNetwork
+            ? "Switch Network"
+            : isLending || isLendConfirming
+            ? "Lending..."
+            : "Lend to Myself"}
         </Button>
         <div className="text-xs text-defi-medium-text mt-2 space-y-1">
           <div>
@@ -980,11 +1213,15 @@ const DebugSection = ({
         <div className="space-y-2 mb-3">
           <div className="flex justify-between text-sm">
             <span className="text-defi-medium-text">Principal:</span>
-            <span className="font-medium text-white">{principal.toFixed(2)} KRWS</span>
+            <span className="font-medium text-white">
+              {principal.toFixed(2)} KRWS
+            </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-defi-medium-text">Fee:</span>
-            <span className="font-medium text-white">{fee.toFixed(2)} KRWS</span>
+            <span className="font-medium text-white">
+              {fee.toFixed(2)} KRWS
+            </span>
           </div>
           <div className="flex justify-between text-sm font-semibold pt-2 border-t">
             <span>Total Debt:</span>
@@ -996,10 +1233,10 @@ const DebugSection = ({
           onClick={!isConnected ? onConnectWallet : handleRepay}
           disabled={
             !isCorrectNetwork ||
-            totalDebt <= 0 || 
-            isApprovePending || 
-            isApproveConfirming || 
-            isRepayPending || 
+            totalDebt <= 0 ||
+            isApprovePending ||
+            isApproveConfirming ||
+            isRepayPending ||
             isRepayConfirming ||
             pendingRepay ||
             !krwsAddress
@@ -1042,7 +1279,9 @@ const DebugSection = ({
       <div className="p-3 bg-defi-darker rounded-lg text-xs space-y-1">
         <div className="flex justify-between">
           <span className="text-defi-medium-text">Vault Utilization:</span>
-          <span className="font-medium text-white">{vaultData.utilizationRate}%</span>
+          <span className="font-medium text-white">
+            {vaultData.utilizationRate}%
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-defi-medium-text">Active Loans:</span>
@@ -1248,7 +1487,8 @@ const DepositWithdrawCard = ({
     if (activeTab === "deposit") {
       setAmount(balances.krws.toString());
     } else {
-      setAmount(Math.min(maxWithdraw, balances.spvKRWSInKRWS).toString());
+      // For withdraw, use spvKRWS balance
+      setAmount(balances.spvKRWS.toString());
     }
   };
 
@@ -1311,7 +1551,9 @@ const DepositWithdrawCard = ({
   const previewDepositShares = amount
     ? parseFloat(amount) * exchangeRate.spvKRWSPerKRWS
     : 0;
-  const previewWithdrawAssets = amount ? parseFloat(amount) : 0;
+  const previewWithdrawAssets = amount 
+    ? parseFloat(amount) * exchangeRate.krwsPerSpvKRWS 
+    : 0;
 
   return (
     <Card>
@@ -1358,7 +1600,9 @@ const DepositWithdrawCard = ({
                   MAX
                 </button>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-defi-card rounded-lg border border-defi-border">
-                  <span className="font-semibold text-white">KRWS</span>
+                  <span className="font-semibold text-white">
+                    {activeTab === "deposit" ? "KRWS" : "spvKRWS"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1368,9 +1612,11 @@ const DepositWithdrawCard = ({
             <>
               <div className="space-y-3 p-4 bg-defi-darker rounded-xl">
                 <div className="flex justify-between items-center">
-                  <span className="text-defi-medium-text">You will receive</span>
+                  <span className="text-defi-medium-text">
+                    You will receive
+                  </span>
                   <span className="font-semibold text-white">
-                    {previewDepositShares.toFixed(2)} spvKRWS
+                    {formatNumber(previewDepositShares, 2)} spvKRWS
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
@@ -1455,15 +1701,19 @@ const DepositWithdrawCard = ({
             <>
               <div className="space-y-3 p-4 bg-defi-darker rounded-xl">
                 <div className="flex justify-between items-center">
-                  <span className="text-defi-medium-text">You will receive</span>
+                  <span className="text-defi-medium-text">
+                    You will receive
+                  </span>
                   <span className="font-semibold text-white">
-                    {previewWithdrawAssets.toFixed(2)} KRWS
+                    {formatNumber(previewWithdrawAssets, 2)} KRWS
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-defi-medium-text">Available to withdraw</span>
+                  <span className="text-defi-medium-text">
+                    Available to withdraw
+                  </span>
                   <span className="font-semibold text-white">
-                    {maxWithdraw.toFixed(2)} KRWS
+                    {formatNumber(balances.spvKRWS, 2)} spvKRWS
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
@@ -1491,7 +1741,7 @@ const DepositWithdrawCard = ({
                   !isCorrectNetwork ||
                   !amount ||
                   parseFloat(amount) <= 0 ||
-                  parseFloat(amount) > maxWithdraw ||
+                  parseFloat(amount) > balances.spvKRWS ||
                   isWithdrawing ||
                   isWithdrawConfirming
                 }
@@ -1513,7 +1763,9 @@ const DepositWithdrawCard = ({
         <div className="mt-6">
           <div className="p-4 border-2 border-dashed border-defi-border bg-defi-darker rounded-xl">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg font-semibold text-white">🧪 Test Console</span>
+              <span className="text-lg font-semibold text-white">
+                🧪 Test Console
+              </span>
             </div>
 
             <DebugSection
@@ -1532,10 +1784,10 @@ const DepositWithdrawCard = ({
 };
 
 // Main Dashboard Layout
-export const VaultDashboard: React.FC<VaultDashboardProps> = ({ 
+export const VaultDashboard: React.FC<VaultDashboardProps> = ({
   isCorrectNetwork = true,
   isConnected = true,
-  onConnectWallet
+  onConnectWallet,
 }) => {
   const balances = useUserBalances();
   const vaultData = useVaultData();
@@ -1554,7 +1806,12 @@ export const VaultDashboard: React.FC<VaultDashboardProps> = ({
         <div className="xl:col-span-8 space-y-6">
           {/* Top Stats Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <BalanceCard balances={balances} isConnected={isConnected} isCorrectNetwork={isCorrectNetwork} />
+            <BalanceCard
+              balances={balances}
+              isConnected={isConnected}
+              isCorrectNetwork={isCorrectNetwork}
+              onTransactionComplete={handleTransactionComplete}
+            />
             <VaultCard vaultData={vaultData} />
           </div>
 
