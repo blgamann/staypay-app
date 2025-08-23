@@ -19,6 +19,13 @@ import { useAccount } from "wagmi";
 import { formatUnits } from "viem";
 import kaiaIcon from "../assets/kaia.png";
 import krwcIcon from "../assets/krwc.png";
+import { 
+  getLoanActivities, 
+  getTimeAgo, 
+  addLoanActivity, 
+  updateLoanToRepaid,
+  type LoanActivity 
+} from "../utils/loanStorage";
 
 // Utility function to format numbers with commas
 const formatNumber = (num: number, decimals: number = 2): string => {
@@ -405,290 +412,50 @@ const LoanActivityCard = () => {
   const [timeFilter, setTimeFilter] = useState<"week" | "month" | "all">(
     "week"
   );
+  const [activities, setActivities] = useState<LoanActivity[]>([]);
 
-  // Generate more realistic loan data
-  const generateLoanActivities = () => {
-    const activities = [];
+  // Load activities from localStorage on mount and refresh
+  useEffect(() => {
+    const loadActivities = () => {
+      const stored = getLoanActivities();
+      // Combine stored activities with some dummy data for demo
+      const dummyActivities = generateDummyActivities();
+      const combined = [...stored, ...dummyActivities];
+      setActivities(combined);
+    };
+
+    loadActivities();
+    // Refresh every 2 seconds to catch new activities
+    const interval = setInterval(loadActivities, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Generate some dummy activities for demo
+  const generateDummyActivities = (): LoanActivity[] => {
     const now = Date.now();
-
-    // Recent activities (last 7 days) - 12 activities
-    activities.push(
+    const activities: LoanActivity[] = [
       {
-        type: "issued",
-        amount: 850000,
-        time: "2 hours ago",
-        timestamp: now - 2 * 60 * 60 * 1000,
-        status: "active",
-      },
-      {
+        id: 'dummy_1',
         type: "repaid",
+        amount: 1200000,
         principal: 1200000,
         repaidAmount: 1224000,
         fee: 24000,
-        time: "5 hours ago",
-        timestamp: now - 5 * 60 * 60 * 1000,
         duration: 28,
+        timestamp: now - 5 * 60 * 60 * 1000,
+        status: "repaid",
       },
       {
+        id: 'dummy_2',
         type: "issued",
         amount: 1500000,
-        time: "12 hours ago",
         timestamp: now - 12 * 60 * 60 * 1000,
         status: "active",
       },
-      {
-        type: "repaid",
-        principal: 1800000,
-        repaidAmount: 1836000,
-        fee: 36000,
-        time: "1 day ago",
-        timestamp: now - 24 * 60 * 60 * 1000,
-        duration: 30,
-      },
-      {
-        type: "issued",
-        amount: 950000,
-        time: "2 days ago",
-        timestamp: now - 2 * 24 * 60 * 60 * 1000,
-        status: "active",
-      },
-      {
-        type: "repaid",
-        principal: 1000000,
-        repaidAmount: 1020000,
-        fee: 20000,
-        time: "2 days ago",
-        timestamp: now - 2.5 * 24 * 60 * 60 * 1000,
-        duration: 30,
-      },
-      {
-        type: "issued",
-        amount: 1800000,
-        time: "3 days ago",
-        timestamp: now - 3 * 24 * 60 * 60 * 1000,
-        status: "active",
-      },
-      {
-        type: "repaid",
-        principal: 750000,
-        repaidAmount: 765000,
-        fee: 15000,
-        time: "4 days ago",
-        timestamp: now - 4 * 24 * 60 * 60 * 1000,
-        duration: 25,
-      },
-      {
-        type: "repaid",
-        principal: 2100000,
-        repaidAmount: 2142000,
-        fee: 42000,
-        time: "5 days ago",
-        timestamp: now - 5 * 24 * 60 * 60 * 1000,
-        duration: 31,
-      },
-      {
-        type: "issued",
-        amount: 1650000,
-        time: "5 days ago",
-        timestamp: now - 5.5 * 24 * 60 * 60 * 1000,
-        status: "active",
-      },
-      {
-        type: "repaid",
-        principal: 900000,
-        repaidAmount: 918000,
-        fee: 18000,
-        time: "6 days ago",
-        timestamp: now - 6 * 24 * 60 * 60 * 1000,
-        duration: 27,
-      },
-      {
-        type: "overdue",
-        amount: 450000,
-        time: "6 days ago",
-        timestamp: now - 6.5 * 24 * 60 * 60 * 1000,
-        daysOverdue: 1,
-      }
-    );
-
-    // Activities from last month (8-30 days) - 18 activities
-    activities.push(
-      {
-        type: "issued",
-        amount: 1500000,
-        time: "8 days ago",
-        timestamp: now - 8 * 24 * 60 * 60 * 1000,
-        status: "repaid",
-      },
-      {
-        type: "repaid",
-        principal: 1500000,
-        repaidAmount: 1530000,
-        fee: 30000,
-        time: "10 days ago",
-        timestamp: now - 10 * 24 * 60 * 60 * 1000,
-        duration: 29,
-      },
-      {
-        type: "issued",
-        amount: 1200000,
-        time: "12 days ago",
-        timestamp: now - 12 * 24 * 60 * 60 * 1000,
-        status: "repaid",
-      },
-      {
-        type: "repaid",
-        principal: 2200000,
-        repaidAmount: 2244000,
-        fee: 44000,
-        time: "14 days ago",
-        timestamp: now - 14 * 24 * 60 * 60 * 1000,
-        duration: 28,
-      },
-      {
-        type: "repaid",
-        principal: 2000000,
-        repaidAmount: 2040000,
-        fee: 40000,
-        time: "15 days ago",
-        timestamp: now - 15 * 24 * 60 * 60 * 1000,
-        duration: 29,
-      },
-      {
-        type: "issued",
-        amount: 1750000,
-        time: "18 days ago",
-        timestamp: now - 18 * 24 * 60 * 60 * 1000,
-        status: "repaid",
-      },
-      {
-        type: "repaid",
-        principal: 1750000,
-        repaidAmount: 1785000,
-        fee: 35000,
-        time: "20 days ago",
-        timestamp: now - 20 * 24 * 60 * 60 * 1000,
-        duration: 30,
-      },
-      {
-        type: "issued",
-        amount: 1900000,
-        time: "22 days ago",
-        timestamp: now - 22 * 24 * 60 * 60 * 1000,
-        status: "repaid",
-      },
-      {
-        type: "repaid",
-        principal: 3000000,
-        repaidAmount: 3060000,
-        fee: 60000,
-        time: "24 days ago",
-        timestamp: now - 24 * 24 * 60 * 60 * 1000,
-        duration: 28,
-      },
-      {
-        type: "issued",
-        amount: 800000,
-        time: "25 days ago",
-        timestamp: now - 25 * 24 * 60 * 60 * 1000,
-        status: "repaid",
-      },
-      {
-        type: "repaid",
-        principal: 800000,
-        repaidAmount: 816000,
-        fee: 16000,
-        time: "27 days ago",
-        timestamp: now - 27 * 24 * 60 * 60 * 1000,
-        duration: 29,
-      },
-      {
-        type: "issued",
-        amount: 1900000,
-        time: "28 days ago",
-        timestamp: now - 28 * 24 * 60 * 60 * 1000,
-        status: "repaid",
-      },
-      {
-        type: "repaid",
-        principal: 1900000,
-        repaidAmount: 1938000,
-        fee: 38000,
-        time: "29 days ago",
-        timestamp: now - 29 * 24 * 60 * 60 * 1000,
-        duration: 30,
-      }
-    );
-
-    // Older activities (31+ days) - 12 activities
-    activities.push(
-      {
-        type: "overdue",
-        amount: 500000,
-        time: "35 days ago",
-        timestamp: now - 35 * 24 * 60 * 60 * 1000,
-        daysOverdue: 35,
-      },
-      {
-        type: "repaid",
-        principal: 1300000,
-        repaidAmount: 1326000,
-        fee: 26000,
-        time: "40 days ago",
-        timestamp: now - 40 * 24 * 60 * 60 * 1000,
-        duration: 31,
-      },
-      {
-        type: "repaid",
-        principal: 2400000,
-        repaidAmount: 2448000,
-        fee: 48000,
-        time: "45 days ago",
-        timestamp: now - 45 * 24 * 60 * 60 * 1000,
-        duration: 30,
-      },
-      {
-        type: "repaid",
-        principal: 1100000,
-        repaidAmount: 1122000,
-        fee: 22000,
-        time: "50 days ago",
-        timestamp: now - 50 * 24 * 60 * 60 * 1000,
-        duration: 28,
-      },
-      {
-        type: "repaid",
-        principal: 1600000,
-        repaidAmount: 1632000,
-        fee: 32000,
-        time: "60 days ago",
-        timestamp: now - 60 * 24 * 60 * 60 * 1000,
-        duration: 29,
-      },
-      {
-        type: "repaid",
-        principal: 2800000,
-        repaidAmount: 2856000,
-        fee: 56000,
-        time: "75 days ago",
-        timestamp: now - 75 * 24 * 60 * 60 * 1000,
-        duration: 30,
-      },
-      {
-        type: "repaid",
-        principal: 950000,
-        repaidAmount: 969000,
-        fee: 19000,
-        time: "90 days ago",
-        timestamp: now - 90 * 24 * 60 * 60 * 1000,
-        duration: 31,
-      }
-    );
+    ];
 
     return activities;
   };
-
-  const allActivities = generateLoanActivities();
 
   // Filter activities based on selected time period
   const getFilteredActivities = () => {
@@ -698,51 +465,42 @@ const LoanActivityCard = () => {
 
     switch (timeFilter) {
       case "week":
-        return allActivities.filter((a) => a.timestamp >= weekAgo);
+        return activities.filter((a) => a.timestamp >= weekAgo);
       case "month":
-        return allActivities.filter((a) => a.timestamp >= monthAgo);
+        return activities.filter((a) => a.timestamp >= monthAgo);
       case "all":
-        return allActivities;
+        return activities;
       default:
-        return allActivities;
+        return activities;
     }
   };
 
-  const activities = getFilteredActivities();
+  const filteredActivities = getFilteredActivities();
 
-  // Calculate dynamic stats based on filtered activities
-  const calculateStats = () => {
-    const filtered = activities;
-    const stats = {
-      totalLoans: 0,
-      repaid: 0,
-      overdue: 0,
-      active: 0,
-    };
-
-    filtered.forEach((activity) => {
-      if (activity.type === "issued") {
-        stats.totalLoans++;
-        if (activity.status === "active") {
-          stats.active++;
-        } else if (activity.status === "repaid") {
-          // Count as repaid (for older issued loans that were repaid)
-          stats.repaid++;
-        }
-      } else if (activity.type === "repaid") {
-        // These are completed loans
-        stats.repaid++;
-        stats.totalLoans++;
-      } else if (activity.type === "overdue") {
-        stats.overdue++;
-        stats.totalLoans++;
-      }
-    });
-
-    return stats;
+  // Calculate stats
+  const loanStats = {
+    totalLoans: 0,
+    repaid: 0,
+    overdue: 0,
+    active: 0,
   };
 
-  const loanStats = calculateStats();
+  filteredActivities.forEach((activity) => {
+    if (activity.type === "issued") {
+      loanStats.totalLoans++;
+      const daysSince = Math.floor((Date.now() - activity.timestamp) / (1000 * 60 * 60 * 24));
+      if (activity.status === "repaid") {
+        loanStats.repaid++;
+      } else if (daysSince > 30) {
+        loanStats.overdue++;
+      } else {
+        loanStats.active++;
+      }
+    } else if (activity.type === "repaid") {
+      loanStats.totalLoans++;
+      loanStats.repaid++;
+    }
+  });
 
   const formatKRW = (value: number) => {
     return new Intl.NumberFormat("ko-KR").format(value);
@@ -750,23 +508,13 @@ const LoanActivityCard = () => {
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case "issued":
-        return "📤";
-      case "repaid":
-        return "📥";
-      case "overdue":
-        return "⚠️";
-      default:
-        return "📄";
+      case "issued": return "📤";
+      case "repaid": return "📥";
+      case "overdue": return "⚠️";
+      default: return "📄";
     }
   };
 
-  const getStatusColor = (type: string, status?: string) => {
-    if (type === "repaid") return "text-blue-600 bg-blue-50";
-    if (type === "overdue") return "text-red-600 bg-red-50";
-    if (status === "active") return "text-green-600 bg-green-50";
-    return "text-defi-medium-text bg-defi-darker";
-  };
 
   return (
     <Card>
@@ -774,7 +522,6 @@ const LoanActivityCard = () => {
         <div className="flex justify-between items-center mb-4 flex-shrink-0">
           <h3 className="text-lg font-semibold text-white">Loan Activity</h3>
 
-          {/* Time Filter Buttons */}
           <div className="flex gap-1 bg-defi-darker rounded-lg p-0.5">
             <button
               onClick={() => setTimeFilter("week")}
@@ -812,114 +559,93 @@ const LoanActivityCard = () => {
         {/* Summary Stats */}
         <div className="grid grid-cols-4 gap-4 p-3 bg-defi-darker rounded-lg mb-4 flex-shrink-0">
           <div className="text-center">
-            <div className="text-xl font-bold text-white">
-              {loanStats.totalLoans}
-            </div>
+            <div className="text-xl font-bold text-white">{loanStats.totalLoans}</div>
             <div className="text-xs text-defi-medium-text">Total Loans</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-blue-600">
-              {loanStats.repaid}
-            </div>
+            <div className="text-xl font-bold text-blue-600">{loanStats.repaid}</div>
             <div className="text-xs text-defi-medium-text">Repaid</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-red-600">
-              {loanStats.overdue}
-            </div>
+            <div className="text-xl font-bold text-red-600">{loanStats.overdue}</div>
             <div className="text-xs text-defi-medium-text">Overdue</div>
+            <div className="text-xs text-defi-medium-text">(&gt;1 month)</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-green-600">
-              {loanStats.active}
-            </div>
+            <div className="text-xl font-bold text-green-600">{loanStats.active}</div>
             <div className="text-xs text-defi-medium-text">Active</div>
           </div>
         </div>
 
         {/* Activity List */}
-        <div
-          className="space-y-3 overflow-y-auto"
-          style={{ maxHeight: "542px" }}
-        >
-          {activities.length === 0 ? (
+        <div className="space-y-3 overflow-y-auto" style={{ maxHeight: "542px" }}>
+          {filteredActivities.length === 0 ? (
             <div className="text-center py-8 text-defi-medium-text">
               No activities in the selected period
             </div>
           ) : (
-            activities.map((activity, index) => (
-              <div key={index} className="border-l-2 border-gray-200 pl-4 py-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">
-                        {getActivityIcon(activity.type)}
-                      </span>
-                      <span className="font-medium text-white">
-                        {activity.type === "issued" && "Loan Issued"}
-                        {activity.type === "repaid" && "Loan Repaid"}
-                        {activity.type === "overdue" && "Loan Overdue"}
-                      </span>
-                      <span className="text-xs text-defi-medium-text">
-                        {activity.time}
-                      </span>
+            filteredActivities.map((activity) => {
+              const daysSince = Math.floor((Date.now() - activity.timestamp) / (1000 * 60 * 60 * 24));
+              const isOverdue = activity.type === "issued" && activity.status !== "repaid" && daysSince > 30;
+              
+              return (
+                <div key={activity.id} className="border-l-2 border-gray-200 pl-4 py-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">
+                          {getActivityIcon(isOverdue ? "overdue" : activity.type)}
+                        </span>
+                        <span className="font-medium text-white">
+                          {isOverdue && "Loan Overdue"}
+                          {!isOverdue && activity.type === "issued" && "Loan Issued"}
+                          {activity.type === "repaid" && "Loan Repaid"}
+                        </span>
+                        <span className="text-xs text-defi-medium-text">
+                          {getTimeAgo(activity.timestamp)}
+                        </span>
+                      </div>
+
+                      {activity.type === "issued" && (
+                        <div className="ml-7">
+                          <div className="font-mono font-semibold text-white">
+                            ₩{formatKRW(activity.amount)}
+                          </div>
+                          <span
+                            className={`inline-block px-2 py-0.5 text-xs rounded-full mt-1 ${
+                              isOverdue 
+                                ? "text-red-600 bg-red-50"
+                                : "text-green-600 bg-green-50"
+                            }`}
+                          >
+                            {isOverdue ? `${daysSince - 30} days overdue` : 'Active'}
+                          </span>
+                        </div>
+                      )}
+
+                      {activity.type === "repaid" && activity.principal && (
+                        <div className="ml-7">
+                          <div className="font-mono">
+                            <span className="font-semibold text-white">
+                              ₩{formatKRW(activity.principal)}
+                            </span>
+                            <span className="text-defi-medium-text"> → </span>
+                            <span className="font-semibold text-blue-600">
+                              ₩{formatKRW(activity.repaidAmount || activity.principal)}
+                            </span>
+                            {activity.fee && (
+                              <span className="text-sm text-green-600 ml-2">
+                                (+₩{formatKRW(activity.fee)} fee)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-
-                    {activity.type === "issued" && "amount" in activity && (
-                      <div className="ml-7">
-                        <div className="font-mono font-semibold text-white">
-                          ₩{formatKRW((activity as any).amount)}
-                        </div>
-                        <span
-                          className={`inline-block px-2 py-0.5 text-xs rounded-full mt-1 ${getStatusColor(
-                            activity.type,
-                            "status" in activity ? activity.status : undefined
-                          )}`}
-                        >
-                          Active
-                        </span>
-                      </div>
-                    )}
-
-                    {activity.type === "repaid" && "principal" in activity && (
-                      <div className="ml-7">
-                        <div className="font-mono">
-                          <span className="font-semibold text-white">
-                            ₩{formatKRW(activity.principal!)}
-                          </span>
-                          <span className="text-defi-medium-text"> → </span>
-                          <span className="font-semibold text-blue-600">
-                            ₩{formatKRW(activity.repaidAmount!)}
-                          </span>
-                          <span className="text-sm text-green-600 ml-2">
-                            (+₩{formatKRW(activity.fee!)} fee)
-                          </span>
-                        </div>
-                        <div className="text-xs text-defi-medium-text mt-1">
-                          Duration: {activity.duration} days
-                        </div>
-                      </div>
-                    )}
-
-                    {activity.type === "overdue" && "amount" in activity && (
-                      <div className="ml-7">
-                        <div className="font-mono font-semibold text-white">
-                          ₩{formatKRW((activity as any).amount)}
-                        </div>
-                        <span
-                          className={`inline-block px-2 py-0.5 text-xs rounded-full mt-1 ${getStatusColor(
-                            activity.type
-                          )}`}
-                        >
-                          {"daysOverdue" in activity ? activity.daysOverdue : 0}{" "}
-                          days overdue
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </CardBody>
@@ -943,6 +669,7 @@ const DebugSection = ({
   vaultData: ReturnType<typeof useVaultData>;
   onRefetchExchangeRate: () => void;
 }) => {
+  const { address } = useAccount();
   const shouldEnableInputs = isConnected && isCorrectNetwork;
   const [lendAmount, setLendAmount] = useState("");
   const [debugMessage, setDebugMessage] = useState("");
@@ -981,8 +708,19 @@ const DebugSection = ({
 
   // Handle lend success
   useEffect(() => {
-    if (isLendConfirmed) {
+    if (isLendConfirmed && lendAmount) {
       console.log("Lend confirmed!");
+      
+      // Add loan activity to localStorage
+      const amount = parseFloat(lendAmount);
+      addLoanActivity({
+        type: "issued",
+        amount: amount,
+        principal: amount,  // Store as principal for matching when repaying
+        status: "active",
+        address: address,   // Store address for better matching
+      });
+      
       setDebugMessage("Loan issued successfully!");
       setLendAmount(""); // Clear input after successful lend
       onTransactionComplete();
@@ -1077,6 +815,12 @@ const DebugSection = ({
   useEffect(() => {
     if (isRepayConfirmed) {
       console.log("Repay confirmed!");
+      
+      // Update loan activity to repaid
+      if (principal > 0 && fee >= 0) {
+        updateLoanToRepaid(principal, fee, address);
+      }
+      
       setDebugMessage("Loan repaid successfully!");
       setPendingRepay(false);
       onTransactionComplete();
@@ -1160,6 +904,9 @@ const DebugSection = ({
       {/* Lend Section */}
       <div className="p-4 bg-defi-card border border-defi-border rounded-lg">
         <h4 className="font-medium mb-3">📤 Issue Loan</h4>
+        <div className="text-xs text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-md mb-3">
+          💡 Fixed fee: 2% of loan amount
+        </div>
         <div className="space-y-2 mb-2">
           <div className="relative">
             <input
@@ -1199,7 +946,7 @@ const DebugSection = ({
             ? "Lending..."
             : "Lend to Myself"}
         </Button>
-        <div className="text-xs text-defi-medium-text mt-2 space-y-1">
+        <div className="text-xs text-defi-medium-text mt-3 space-y-1">
           <div>
             Available: {vaultData.availableLiquidity.toLocaleString()} KRWS
           </div>
@@ -1214,18 +961,18 @@ const DebugSection = ({
           <div className="flex justify-between text-sm">
             <span className="text-defi-medium-text">Principal:</span>
             <span className="font-medium text-white">
-              {principal.toFixed(2)} KRWS
+              {principal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KRWS
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-defi-medium-text">Fee:</span>
             <span className="font-medium text-white">
-              {fee.toFixed(2)} KRWS
+              {fee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KRWS
             </span>
           </div>
-          <div className="flex justify-between text-sm font-semibold pt-2 border-t">
+          <div className="flex justify-between text-sm font-semibold pt-3 mt-2 border-t border-defi-border">
             <span>Total Debt:</span>
-            <span>{totalDebt.toFixed(2)} KRWS</span>
+            <span>{totalDebt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KRWS</span>
           </div>
         </div>
         <Button
@@ -1275,21 +1022,6 @@ const DebugSection = ({
         </div>
       )}
 
-      {/* Vault Status */}
-      <div className="p-3 bg-defi-darker rounded-lg text-xs space-y-1">
-        <div className="flex justify-between">
-          <span className="text-defi-medium-text">Vault Utilization:</span>
-          <span className="font-medium text-white">
-            {vaultData.utilizationRate}%
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-defi-medium-text">Active Loans:</span>
-          <span className="font-medium text-white">
-            {vaultData.activeLoans.toFixed(2)} KRWS
-          </span>
-        </div>
-      </div>
     </div>
   );
 };
@@ -1338,7 +1070,6 @@ const DepositWithdrawCard = ({
   } = useDeposit();
   const {
     withdraw,
-    maxWithdraw,
     isPending: isWithdrawing,
     isConfirming: isWithdrawConfirming,
     isConfirmed: isWithdrawConfirmed,
@@ -1347,10 +1078,10 @@ const DepositWithdrawCard = ({
     refetchMaxWithdraw,
   } = useWithdraw();
 
-  // Clear error message when switching tabs or changing amount
+  // Clear error message when switching tabs
   useEffect(() => {
     setErrorMessage("");
-  }, [activeTab, amount]);
+  }, [activeTab]);
 
   // Handle approve error or cancellation
   useEffect(() => {
@@ -1485,10 +1216,13 @@ const DepositWithdrawCard = ({
 
   const handleMax = () => {
     if (activeTab === "deposit") {
-      setAmount(balances.krws.toString());
+      // Use full precision
+      const maxValue = balances.krws;
+      setAmount(maxValue.toString());
     } else {
-      // For withdraw, use spvKRWS balance
-      setAmount(balances.spvKRWS.toString());
+      // For withdraw, use spvKRWS balance with full precision
+      const maxValue = balances.spvKRWS;
+      setAmount(maxValue.toString());
     }
   };
 
@@ -1496,6 +1230,7 @@ const DepositWithdrawCard = ({
     if (!amount || parseFloat(amount) <= 0) return;
 
     setErrorMessage("");
+    
 
     try {
       // Force refetch allowance before checking
@@ -1538,6 +1273,7 @@ const DepositWithdrawCard = ({
     if (!amount || parseFloat(amount) <= 0) return;
 
     setErrorMessage("");
+    
 
     try {
       await withdraw(amount);
